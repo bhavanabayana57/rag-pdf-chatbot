@@ -63,8 +63,8 @@ from streamlit_mic_recorder import (
 )
 # -------------------- CONFIG --------------------
 
-CHAT_DIR = "chats"
-os.makedirs(CHAT_DIR, exist_ok=True)
+BASE_CHAT_DIR = "chats"
+os.makedirs(BASE_CHAT_DIR, exist_ok=True)
 
 USERS_FILE = "users.json"
 
@@ -365,6 +365,15 @@ if not st.session_state.logged_in:
 
         if not st.session_state.logged_in:
             st.stop()                
+
+current_user = st.session_state.username
+
+CHAT_DIR = os.path.join(
+    BASE_CHAT_DIR,
+    current_user
+)
+
+os.makedirs(CHAT_DIR, exist_ok=True)
 
 st.sidebar.write(
     f"👤 {st.session_state.username}"
