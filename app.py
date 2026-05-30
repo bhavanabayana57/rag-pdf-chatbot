@@ -335,6 +335,9 @@ if not st.session_state.logged_in:
 
                     st.session_state.username = username
 
+                    st.session_state.chat_sessions = {}
+                    st.session_state.current_chat = "Chat 1"
+
                     with open(SESSION_FILE, "w") as f:
                         json.dump({"username": username}, f)
 
@@ -390,6 +393,9 @@ with st.sidebar:
 
         st.session_state.logged_in = False
         st.session_state.username = ""
+
+        st.session_state.chat_sessions = {}
+        st.session_state.current_chat = "Chat 1"
 
         st.rerun()
 
@@ -447,7 +453,7 @@ with st.sidebar:
 
     # ---------- CHAT LIST ----------
 
-    for chat_name in st.session_state.chat_sessions.keys():
+    for chat_name in existing_chats:
 
         col1, col2 = st.columns([4, 1])
 
