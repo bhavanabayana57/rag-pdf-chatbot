@@ -217,8 +217,6 @@ CHAT_DIR = os.path.join(
 
 os.makedirs(CHAT_DIR, exist_ok=True)
 
-st.write("CHAT_DIR =", CHAT_DIR)
-
 existing_chats = sorted([
     folder for folder in os.listdir(CHAT_DIR)
     if os.path.isdir(os.path.join(CHAT_DIR, folder))
