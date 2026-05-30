@@ -1,0 +1,11 @@
+.env
+session.json
+users.json
+
+__pycache__/
+*.pyc
+
+*.faiss
+*.pkl
+
+.vscode/
