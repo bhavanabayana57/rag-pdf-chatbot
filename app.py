@@ -208,6 +208,15 @@ if "chat_sessions" not in st.session_state:
 
 # -------------------- LOAD SAVED CHATS --------------------
 
+current_user = st.session_state.username
+
+CHAT_DIR = os.path.join(
+    BASE_CHAT_DIR,
+    current_user
+)
+
+os.makedirs(CHAT_DIR, exist_ok=True)
+
 existing_chats = sorted([
     folder for folder in os.listdir(CHAT_DIR)
     if os.path.isdir(os.path.join(CHAT_DIR, folder))
@@ -365,15 +374,6 @@ if not st.session_state.logged_in:
 
         if not st.session_state.logged_in:
             st.stop()                
-
-current_user = st.session_state.username
-
-CHAT_DIR = os.path.join(
-    BASE_CHAT_DIR,
-    current_user
-)
-
-os.makedirs(CHAT_DIR, exist_ok=True)
 
 st.sidebar.write(
     f"👤 {st.session_state.username}"
