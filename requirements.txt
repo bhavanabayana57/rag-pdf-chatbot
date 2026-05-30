@@ -8,4 +8,8 @@ sentence-transformers
 torch
 torchvision
 python-dotenv
+rank-bm25
+pdf2image
+pillow
+streamlit-mic-recorder
 pytesseract
