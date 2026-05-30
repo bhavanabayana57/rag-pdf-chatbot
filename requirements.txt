@@ -8,3 +8,4 @@ sentence-transformers
 torch
 torchvision
 python-dotenv
+pytesseract
