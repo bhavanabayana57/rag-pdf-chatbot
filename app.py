@@ -641,7 +641,8 @@ with colB:
                 indent=4
             )
 
-        share_link = f"http://localhost:8501/?share={share_id}"
+        base_url = "https://bhavana-rag-chatbot.streamlit.app"
+        share_link = f"https://bhavana-rag-chatbot.streamlit.app/?share={share_id}"
 
         st.success("Share link created!")
         st.code(share_link)
