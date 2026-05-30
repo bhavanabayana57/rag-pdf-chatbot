@@ -208,10 +208,10 @@ if "chat_sessions" not in st.session_state:
 
 # -------------------- LOAD SAVED CHATS --------------------
 
-existing_chats = [
+existing_chats = sorted([
     folder for folder in os.listdir(CHAT_DIR)
     if os.path.isdir(os.path.join(CHAT_DIR, folder))
-]
+])
 
 for chat_name in existing_chats:
 
