@@ -149,7 +149,11 @@ def process_pdf(file_bytes):
 
     for page_num, page in enumerate(pdf_document):
 
+        st.write("Pages found:", len(pdf_document))
+
         text = page.get_text()
+
+        st.write("Characters:", len(text))
 
         if not text.strip():
             continue
