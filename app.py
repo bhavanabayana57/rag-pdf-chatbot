@@ -6,7 +6,6 @@ import os
 import pickle
 import shutil
 import time
-import pytesseract
 import json
 import streamlit.components.v1 as components
 import uuid
@@ -33,22 +32,19 @@ div[data-testid="stHorizontalBlock"] button{
 </style>
 """, unsafe_allow_html=True)
 
-pytesseract.pytesseract.tesseract_cmd = (
-    r"C:\Program Files\Tesseract-OCR\tesseract.exe"
-)
-
 from openai import OpenAI
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from sentence_transformers import SentenceTransformer
 from sentence_transformers import CrossEncoder
 from dotenv import load_dotenv
 from rank_bm25 import BM25Okapi
-from pdf2image import convert_from_path
 from PIL import Image
 from streamlit_mic_recorder import (
     mic_recorder,
     speech_to_text
 )
+
+st.write("VERSION-999")
 # -------------------- CONFIG --------------------
 
 BASE_CHAT_DIR = "chats"
@@ -156,26 +152,7 @@ def process_pdf(file_bytes):
         text = page.get_text()
 
         if not text.strip():
-
-            images = convert_from_path(
-                pdf_path,
-                first_page=page_num + 1,
-                last_page=page_num + 1,
-                dpi=70,
-                fmt="jpeg",
-                thread_count=4,
-                poppler_path=r"C:\Users\bhava\Downloads\Release-26.02.0-0\poppler-26.02.0\Library\bin"
-            )
-
-            text = pytesseract.image_to_string(images[0])
-
-            ocr_text = ""
-
-            for image in images:
-
-                ocr_text += pytesseract.image_to_string(image)
-
-            text = ocr_text
+            continue
 
         documents.append({
             "text": text,
@@ -889,18 +866,14 @@ for message in messages:
 
 # ---------------- CHAT INPUT ----------------
 
-col1, col2 = st.columns([12,1])
+question = st.text_input(
+    "",
+    placeholder="Ask a question from PDF",
+    key="question"
+)
 
-with col1:
-    question = st.text_input(
-        "",
-        placeholder="Ask a question from PDF",
-        label_visibility="collapsed",
-        key="question"
-    )
-
-with col2:
-    send = st.button("⬆️")
+if question:
+    user_question = question
 
 st.markdown("### 🎤 Voice Input")
 
@@ -1045,7 +1018,7 @@ if question:
 
             retrieved_chunks.append(chunks[idx])
 
-            retrieved_pages.append(chunk_pages[idx])
+            retrieved_pages.append(chunk_pages[idx])  
     
     # -------- RERANKING --------
 
@@ -1058,10 +1031,8 @@ if question:
 
     best_score = max(scores)
 
-    if best_score < -8:
-        st.error(
-            "Question is unrelated to PDF content"
-        )
+    if best_score < -4:
+        st.warning("Low relevance. Still answering...")
 
         st.stop()
 
