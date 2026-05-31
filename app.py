@@ -889,7 +889,7 @@ for message in messages:
 
 # ---------------- CHAT INPUT ----------------
 
-col1, col2, col3 = st.columns([12, 1, 1])
+col1, col2 = st.columns([12,1])
 
 with col1:
     question = st.text_input(
@@ -900,17 +900,15 @@ with col1:
     )
 
 with col2:
-    voice_text = speech_to_text(
-        language="en",
-        just_once=False,
-        key="voice"
-    )
-
-with col3:
     send = st.button("⬆️")
 
-if send and question.strip():
-    user_question = question
+st.markdown("### 🎤 Voice Input")
+
+voice_text = speech_to_text(
+    language="en",
+    just_once=False,
+    key="voice"
+)
 
 if question:
 
