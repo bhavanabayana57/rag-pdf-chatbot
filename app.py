@@ -887,6 +887,10 @@ for message in messages:
             st.caption(f"Source Pages: {message['page']}")
 # ---------------- CHAT INPUT ----------------
 
+# ---------------- CHAT INPUT ----------------
+
+col1, col2, col3 = st.columns([12, 1, 1])
+
 with col1:
     question = st.text_input(
         "",
@@ -903,7 +907,7 @@ with col2:
     )
 
 with col3:
-    send = st.button("🚀")
+    send = st.button("⬆️")
 
 if send and question.strip():
     user_question = question
