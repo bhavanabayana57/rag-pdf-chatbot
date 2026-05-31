@@ -13,18 +13,6 @@ import uuid
 import json
 import hashlib
 
-SESSION_FILE = "session.json"
-
-if (
-    os.path.exists(SESSION_FILE)
-    and not st.session_state.get("logged_in", False)
-):
-    with open(SESSION_FILE, "r") as f:
-        session_data = json.load(f)
-
-    st.session_state.logged_in = True
-    st.session_state.username = session_data["username"]
-
 st.markdown("""
 <style>
 
@@ -336,9 +324,6 @@ if not st.session_state.logged_in:
                     st.session_state.chat_sessions = {}
                     st.session_state.current_chat = "Chat 1"
 
-                    with open(SESSION_FILE, "w") as f:
-                        json.dump({"username": username}, f)
-
                     st.rerun()
 
                 else:
@@ -386,14 +371,7 @@ with st.sidebar:
 
     if st.button("Logout"):
 
-        if os.path.exists(SESSION_FILE):
-            os.remove(SESSION_FILE)
-
-        st.session_state.logged_in = False
-        st.session_state.username = ""
-
-        st.session_state.chat_sessions = {}
-        st.session_state.current_chat = "Chat 1"
+        st.session_state.clear()
 
         st.rerun()
 
@@ -587,9 +565,6 @@ if not st.session_state.logged_in:
                 st.session_state.logged_in = True
 
                 st.session_state.username = username
-
-                with open(SESSION_FILE, "w") as f:
-                    json.dump({"username": username}, f)
 
                 st.rerun()
 
