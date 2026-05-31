@@ -1,5 +1,4 @@
 streamlit
-pymupdf
 faiss-cpu
 numpy
 openai
@@ -12,3 +11,5 @@ rank-bm25
 pdf2image
 pillow
 streamlit-mic-recorder
+pytesseract
+PyMuPDF
