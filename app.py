@@ -887,8 +887,6 @@ for message in messages:
             st.caption(f"Source Pages: {message['page']}")
 # ---------------- CHAT INPUT ----------------
 
-col1, col2 = st.columns([15,1], vertical_alignment="center")
-
 with col1:
     question = st.text_input(
         "",
@@ -901,12 +899,14 @@ with col2:
     voice_text = speech_to_text(
         language="en",
         just_once=False,
-        key="voice",
-        start_prompt="🎤",
-        stop_prompt="⏹"
+        key="voice"
     )
-if voice_text and not question:
-    question = voice_text
+
+with col3:
+    send = st.button("🚀")
+
+if send and question.strip():
+    user_question = question
 
 if question:
 
