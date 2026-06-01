@@ -873,6 +873,13 @@ for msg in st.session_state.messages:
     with st.chat_message(msg["role"]):
         st.markdown(msg["content"])
 
+question = st.chat_input(
+    "Ask a question from PDF"
+)
+
+if question:
+    user_question = question
+
 st.markdown("### 🎤 Voice Input")
 
 voice_text = speech_to_text(
@@ -883,13 +890,6 @@ voice_text = speech_to_text(
 
 if voice_text:
     user_question = voice_text
-
-question = st.chat_input(
-    "Ask a question from PDF"
-)
-
-if question:
-    user_question = question
 
 if question:
 
