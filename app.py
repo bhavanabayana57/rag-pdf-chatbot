@@ -887,6 +887,11 @@ voice_text = speech_to_text(
     key="voice"
 )
 
+st.write("Voice:", voice_text)
+
+if voice_text:
+    user_question = voice_text
+
 if question:
 
     if chat_data["index"] is None:
@@ -977,8 +982,6 @@ if question:
 
     question_embedding = model.encode([final_question])
 
-    question_embedding = model.encode([final_question])
-
     # FAISS SEARCH
     D, I = index.search(question_embedding, k=5)
 
@@ -986,13 +989,14 @@ if question:
 
     avg_distance = sum(D[0]) / len(D[0])
 
+    st.write("Average Distance:", avg_distance)
+
     if avg_distance > 1.2:
 
         st.error(
-            "Question is unrelated to PDF content"
+            "Low relevance. Still answering..."
         )
 
-        st.stop()
 # BM25 SEARCH
     tokenized_query = final_question.split()
 
@@ -1035,10 +1039,9 @@ if question:
 
     best_score = max(scores)
 
-    if best_score < -4:
+    if best_score < -20:
         st.warning("Low relevance. Still answering...")
 
-        st.stop()
 
     ranked_chunks = sorted(
         zip(scores, retrieved_chunks, retrieved_pages),
@@ -1057,14 +1060,14 @@ if question:
     # CONTEXT
 
     if not retrieved_chunks:
-
-        st.error(
-            "Answer not found in uploaded PDF"
+        st.warning(
+            "No direct match found. Using available PDF content."
         )
 
-        st.stop()
-
     context = "\n\n".join(retrieved_chunks)
+
+    st.write("Chunks Retrieved:", len(retrieved_chunks))
+    st.write("Context Length:", len(context))
 
     source_pages = ", ".join(
         [str(p) for p in retrieved_pages]
@@ -1073,32 +1076,36 @@ if question:
     # PROMPT
 
     prompt = f"""
-You are a helpful AI study assistant.
+    You are an expert study assistant.
 
-Answer the question in a clean, well-structured, and easy-to-understand format like ChatGPT.
+    PDF Context:
+    {context}
 
-Rules:
-- Use proper headings
-- Use bullet points when needed
-- Keep definitions short and clear
-- Avoid repeating information
-- Avoid mixing unrelated topics
-- Give only relevant information
-- Make the answer readable for students
-- If examples exist, include only important examples
-- Do not dump raw PDF text
-- Format the answer neatly
-- Keep paragraphs short and separated
-- Use markdown formatting
+    Student Question:
+    {question}
 
-PDF CONTEXT:
-{context}
+    Instructions:
 
-QUESTION:
-{question}
+    1. Answer using the PDF context.
+    2. If asked:
+    - "What does this PDF define?"
+    - "Summarize this PDF"
+    - "Important topics"
+    - "Important 10 mark questions"
+    - "Tomorrow I have an exam"
+    then generate a helpful study-oriented answer from the PDF.
 
-ANSWER:
-"""
+    3. If the exact sentence is not present in the PDF:
+    infer from the available PDF content.
+
+    4. Never say:
+    "Question is unrelated to PDF content"
+    unless the PDF context is completely empty.
+
+    5. Use headings and bullet points.
+
+    Answer:
+    """
 
     # LLM RESPONSE
 
