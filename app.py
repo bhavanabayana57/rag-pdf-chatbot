@@ -1027,14 +1027,42 @@ if question:
 
     scores = reranker.predict(pairs)
 
+    best_score = max(scores)
+
+    question_lower = question.lower()
+
+    is_summary_request = any(
+        k in question_lower
+        for k in [
+            "summary",
+            "summarize",
+            "what this pdf defines",
+            "what does this pdf define",
+            "about this pdf",
+            "what is this pdf about"
+        ]
+    )
+
+    is_exam_request = any(
+        k in question_lower
+        for k in [
+            "exam",
+            "2 marks",
+            "5 marks",
+            "10 marks",
+            "question paper",
+            "important questions",
+            "tomorrow exam",
+            "unit wise questions"
+        ]
+    )
+
     if (
         best_score < -20
         and not is_summary_request
         and not is_exam_request
     ):
-        st.error(
-            "Question not found in uploaded PDF."
-        )
+        st.error("Question not found in uploaded PDF.")
         st.stop()
 
     ranked_chunks = sorted(
