@@ -639,6 +639,22 @@ else:
         key=current_chat
     )
 
+    # ================= VOICE CONTAINER =================
+
+    voice_container = st.container()
+
+    with voice_container:
+
+        st.markdown("### 🎤 Voice Input")
+
+        voice_text = speech_to_text(
+            language="en",
+            just_once=False,
+            key="voice"
+        )
+
+        st.write("Voice Text:", voice_text)
+
 if uploaded_file is not None and chat_data["index"] is None:
 
     # ---------- ONLY PROCESS NEW PDF ----------
@@ -876,16 +892,6 @@ for msg in st.session_state.messages:
 question = st.chat_input(
     "Ask a question from PDF"
 )
-
-st.markdown("### 🎤 Voice Input")
-
-voice_text = speech_to_text(
-    language="en",
-    just_once=False,
-    key="voice"
-)
-
-st.write("Voice Text:", voice_text)
 
 # ---------------- USER QUESTION ----------------
 
