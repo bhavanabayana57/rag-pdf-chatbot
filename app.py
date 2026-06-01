@@ -641,21 +641,23 @@ else:
 
     # ================= VOICE CONTAINER =================
 
-    voice_container = st.container()
+st.write("VOICE BLOCK LOADED")    
 
-    with voice_container:
+voice_text = None
 
-        voice_text = None
+voice_container = st.container()
 
-        st.markdown("### 🎤 Voice Input")
+with voice_container:
 
-        voice_text = speech_to_text(
-            language="en",
-            just_once=False,
-            key="voice"
-        )
+    st.markdown("### 🎤 Voice Input")
 
-        st.write("Voice Text:", voice_text)
+    voice_text = speech_to_text(
+        language="en",
+        just_once=False,
+        key="voice"
+    )
+
+    st.write("Voice Text:", voice_text)
 
 if uploaded_file is not None and chat_data["index"] is None:
 
