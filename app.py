@@ -866,14 +866,12 @@ for message in messages:
 
 # ---------------- CHAT INPUT ----------------
 
-question = st.text_input(
-    "",
-    placeholder="Ask a question from PDF",
-    key="question"
-)
+if "messages" not in st.session_state:
+    st.session_state.messages = []
 
-if question:
-    user_question = question
+for msg in st.session_state.messages:
+    with st.chat_message(msg["role"]):
+        st.markdown(msg["content"])
 
 st.markdown("### 🎤 Voice Input")
 
@@ -885,6 +883,13 @@ voice_text = speech_to_text(
 
 if voice_text:
     user_question = voice_text
+
+question = st.chat_input(
+    "Ask a question from PDF"
+)
+
+if question:
+    user_question = question
 
 if question:
 
