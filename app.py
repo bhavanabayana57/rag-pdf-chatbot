@@ -897,6 +897,8 @@ question = st.chat_input(
 
 # ---------------- USER QUESTION ----------------
 
+voice_text = None
+
 user_question = None
 
 if question:
