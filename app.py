@@ -149,11 +149,7 @@ def process_pdf(file_bytes):
 
     for page_num, page in enumerate(pdf_document):
 
-        st.write("Pages found:", len(pdf_document))
-
         text = page.get_text()
-
-        st.write("Characters:", len(text))
 
         if not text.strip():
             continue
@@ -1029,40 +1025,12 @@ if question:
 
     best_score = max(scores)
 
-    question_lower = question.lower()
+    if best_score < -20:
 
-    is_summary_request = any(
-        k in question_lower
-        for k in [
-            "summary",
-            "summarize",
-            "what this pdf defines",
-            "what does this pdf define",
-            "about this pdf",
-            "what is this pdf about"
-        ]
-    )
+        st.error(
+            "This question does not appear to be related to the uploaded PDF."
+        )
 
-    is_exam_request = any(
-        k in question_lower
-        for k in [
-            "exam",
-            "2 marks",
-            "5 marks",
-            "10 marks",
-            "question paper",
-            "important questions",
-            "tomorrow exam",
-            "unit wise questions"
-        ]
-    )
-
-    if (
-        best_score < -20
-        and not is_summary_request
-        and not is_exam_request
-    ):
-        st.error("Question not found in uploaded PDF.")
         st.stop()
 
     ranked_chunks = sorted(
@@ -1091,101 +1059,47 @@ if question:
         [str(p) for p in retrieved_pages]
     )
 
-    summary_keywords = [
-    "what this pdf defines",
-    "what does this pdf define",
-    "summarize this pdf",
-    "summary of pdf",
-    "about this pdf",
-    "what is this pdf about",
-    "explain this pdf"
-    ]
-
-    is_summary_request = any(
-        k in question.lower()
-        for k in summary_keywords
-    )
-
-    exam_keywords = [
-        "10 marks",
-        "important questions",
-        "exam questions",
-        "question paper",
-        "important topics",
-        "prepare for exam",
-        "tomorrow exam",
-        "give questions",
-        "model paper"
-    ]
-
-    is_exam_request = any(
-        k in question.lower()
-        for k in exam_keywords
-    )
-
     # PROMPT
 
-    if is_exam_request:
+    prompt = f"""
+    You are an intelligent AI study assistant.
 
-        exam_context = "\n\n".join(chunks[:20])
+    Use the uploaded PDF as your primary knowledge source.
 
-        prompt = f"""
-    You are a university professor.
+    Your job is to understand the user's intent and answer naturally like ChatGPT.
 
-    Generate:
+    You may:
 
-    - 10 Two-mark questions
-    - 10 Five-mark questions
-    - 10 Ten-mark questions
-
-    using only the topics from this PDF.
-
-    PDF:
-
-    {exam_context}
-    """
-
-    elif is_summary_request:
-
-        summary_context = "\n\n".join(chunks[:20])
-
-        prompt = f"""
-    You are an expert study assistant.
-
-    Provide:
-
-    1. Overall Summary
-    2. Main Units Covered
-    3. Important Concepts
-    4. Important Exam Topics
-    5. Exam Preparation Tips
-    6. Conclusion
-
-    PDF:
-
-    {summary_context}
-    """
-
-    else:
-
-        prompt = f"""
-    You are a helpful AI study assistant.
-
-    Answer only using the PDF context.
+    - Explain concepts
+    - Summarize chapters
+    - Generate exam questions
+    - Create study plans
+    - Create topic-wise roadmaps
+    - Give revision notes
+    - Compare concepts
+    - Simplify difficult topics
+    - Answer follow-up questions
+    - Guide students
 
     Rules:
-    - Use proper headings
-    - Use bullet points when needed
-    - Keep answers clear and student friendly
-    - Do not invent information
-    - Use examples only when relevant
-    - Answer directly from the PDF context
+
+    1. Base answers mainly on the PDF content.
+    2. If the user asks for explanation, teach it clearly.
+    3. If the user asks for summary, summarize.
+    4. If the user asks for exam questions, generate them from PDF topics.
+    5. If the user asks for roadmap or study guidance, create it using PDF topics.
+    6. Maintain conversation context.
+    7. Use proper headings and bullet points.
+    8. Give professional and student-friendly answers.
+    9. Do not invent topics that are completely unrelated to the PDF.
+    10. If the question is completely outside the PDF, politely say:
+    "This question does not appear to be related to the uploaded PDF."
 
     PDF CONTEXT:
 
     {context}
 
-    QUESTION:
+    USER QUESTION:
 
     {question}
     """
