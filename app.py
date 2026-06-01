@@ -985,17 +985,19 @@ if user_question:
     Do not explain anything.
     """
 
-    rewrite_response = client.chat.completions.create(
-        model="llama-3.1-8b-instant",
-        messages=[
-            {
-                "role": "user",
-                "content": context_question
-            }
-        ]
-    )
+    ##rewrite_response = client.chat.completions.create(
+      #  model="llama-3.1-8b-instant",
+       # messages=[
+        #    {
+         #       "role": "user",
+          #      "content": context_question
+           # }
+        #]
+    #)
 
-    user_question= rewrite_response.choices[0].message.content.strip()
+    #user_question= rewrite_response.choices[0].message.content.strip()
+
+    st.write("SEARCH QUESTION:", user_question)
 
     question_embedding = model.encode([user_question])
 
