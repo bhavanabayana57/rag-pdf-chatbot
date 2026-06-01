@@ -887,8 +887,6 @@ voice_text = speech_to_text(
     key="voice"
 )
 
-st.write("Voice:", voice_text)
-
 if voice_text:
     user_question = voice_text
 
@@ -989,14 +987,6 @@ if question:
 
     avg_distance = sum(D[0]) / len(D[0])
 
-    st.write("Average Distance:", avg_distance)
-
-    if avg_distance > 1.2:
-
-        st.error(
-            "Low relevance. Still answering..."
-        )
-
 # BM25 SEARCH
     tokenized_query = final_question.split()
 
@@ -1037,11 +1027,15 @@ if question:
 
     scores = reranker.predict(pairs)
 
-    best_score = max(scores)
-
-    if best_score < -20:
-        st.warning("Low relevance. Still answering...")
-
+    if (
+        best_score < -20
+        and not is_summary_request
+        and not is_exam_request
+    ):
+        st.error(
+            "Question not found in uploaded PDF."
+        )
+        st.stop()
 
     ranked_chunks = sorted(
         zip(scores, retrieved_chunks, retrieved_pages),
@@ -1060,51 +1054,112 @@ if question:
     # CONTEXT
 
     if not retrieved_chunks:
-        st.warning(
-            "No direct match found. Using available PDF content."
-        )
 
-    context = "\n\n".join(retrieved_chunks)
+        retrieved_chunks = chunks[:5]
 
-    st.write("Chunks Retrieved:", len(retrieved_chunks))
-    st.write("Context Length:", len(context))
+        context = "\n\n".join(retrieved_chunks)
 
     source_pages = ", ".join(
         [str(p) for p in retrieved_pages]
     )
 
+    summary_keywords = [
+    "what this pdf defines",
+    "what does this pdf define",
+    "summarize this pdf",
+    "summary of pdf",
+    "about this pdf",
+    "what is this pdf about",
+    "explain this pdf"
+    ]
+
+    is_summary_request = any(
+        k in question.lower()
+        for k in summary_keywords
+    )
+
+    exam_keywords = [
+        "10 marks",
+        "important questions",
+        "exam questions",
+        "question paper",
+        "important topics",
+        "prepare for exam",
+        "tomorrow exam",
+        "give questions",
+        "model paper"
+    ]
+
+    is_exam_request = any(
+        k in question.lower()
+        for k in exam_keywords
+    )
+
     # PROMPT
 
-    prompt = f"""
+    if is_exam_request:
+
+        exam_context = "\n\n".join(chunks[:20])
+
+        prompt = f"""
+    You are a university professor.
+
+    Generate:
+
+    - 10 Two-mark questions
+    - 10 Five-mark questions
+    - 10 Ten-mark questions
+
+    using only the topics from this PDF.
+
+    PDF:
+
+    {exam_context}
+    """
+
+    elif is_summary_request:
+
+        summary_context = "\n\n".join(chunks[:20])
+
+        prompt = f"""
     You are an expert study assistant.
 
-    PDF Context:
+    Provide:
+
+    1. Overall Summary
+    2. Main Units Covered
+    3. Important Concepts
+    4. Important Exam Topics
+    5. Exam Preparation Tips
+    6. Conclusion
+
+    PDF:
+
+    {summary_context}
+    """
+
+    else:
+
+        prompt = f"""
+    You are a helpful AI study assistant.
+
+    Answer only using the PDF context.
+
+    Rules:
+    - Use proper headings
+    - Use bullet points when needed
+    - Keep answers clear and student friendly
+    - Do not invent information
+    - Use examples only when relevant
+    - Answer directly from the PDF context
+
+    PDF CONTEXT:
+
     {context}
 
-    Student Question:
+    QUESTION:
+
     {question}
-
-    Instructions:
-
-    1. Answer using the PDF context.
-    2. If asked:
-    - "What does this PDF define?"
-    - "Summarize this PDF"
-    - "Important topics"
-    - "Important 10 mark questions"
-    - "Tomorrow I have an exam"
-    then generate a helpful study-oriented answer from the PDF.
-
-    3. If the exact sentence is not present in the PDF:
-    infer from the available PDF content.
-
-    4. Never say:
-    "Question is unrelated to PDF content"
-    unless the PDF context is completely empty.
-
-    5. Use headings and bullet points.
-
-    Answer:
     """
 
     # LLM RESPONSE
