@@ -645,6 +645,8 @@ else:
 
     with voice_container:
 
+        voice_text = None
+
         st.markdown("### 🎤 Voice Input")
 
         voice_text = speech_to_text(
