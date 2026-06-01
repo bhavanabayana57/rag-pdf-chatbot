@@ -1053,7 +1053,7 @@ if question:
 
         retrieved_chunks = chunks[:5]
 
-        context = "\n\n".join(retrieved_chunks)
+    context = "\n\n".join(retrieved_chunks)
 
     source_pages = ", ".join(
         [str(p) for p in retrieved_pages]
