@@ -877,9 +877,6 @@ question = st.chat_input(
     "Ask a question from PDF"
 )
 
-if question:
-    user_question = question
-
 st.markdown("### 🎤 Voice Input")
 
 voice_text = speech_to_text(
@@ -888,10 +885,19 @@ voice_text = speech_to_text(
     key="voice"
 )
 
+st.write("Voice Text:", voice_text)
+
+# ---------------- USER QUESTION ----------------
+
+user_question = None
+
+if question:
+    user_question = question
+
 if voice_text:
     user_question = voice_text
 
-if question:
+if user_question:
 
     if chat_data["index"] is None:
 
@@ -922,7 +928,7 @@ if question:
 
     messages.append({
         "role": "user",
-        "content": question
+        "content": user_question
     })
 
     chat_data["messages"] = messages
@@ -949,7 +955,7 @@ if question:
     {recent_context}
 
     Current question:
-    {question}
+    {user_question}
 
     Rewrite the current question using the previous conversation.
 
@@ -977,9 +983,9 @@ if question:
         ]
     )
 
-    final_question = rewrite_response.choices[0].message.content.strip()
+    user_question= rewrite_response.choices[0].message.content.strip()
 
-    question_embedding = model.encode([final_question])
+    question_embedding = model.encode([user_question])
 
     # FAISS SEARCH
     D, I = index.search(question_embedding, k=5)
@@ -989,7 +995,7 @@ if question:
     avg_distance = sum(D[0]) / len(D[0])
 
 # BM25 SEARCH
-    tokenized_query = final_question.split()
+    tokenized_query = user_question.split()
 
     bm25_scores = bm25.get_scores(tokenized_query)
 
@@ -1022,7 +1028,7 @@ if question:
     # -------- RERANKING --------
 
     pairs = [
-        (final_question, chunk)
+        (user_question, chunk)
         for chunk in retrieved_chunks
     ]
 
@@ -1097,10 +1103,11 @@ if question:
     7. Use proper headings and bullet points.
     8. Give professional and student-friendly answers.
     9. Do not invent topics that are completely unrelated to the PDF.
-    10. If the question is completely outside the PDF, politely say:
-    "This question does not appear to be related to the uploaded PDF."
+   10. If the question is completely outside the PDF, DO NOT answer it.
 
-    PDF CONTEXT:
+    Simply respond:
+
+    "This question does not appear to be related to the uploaded PDF."
 
     {context}
 
