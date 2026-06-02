@@ -488,10 +488,11 @@ chat_data = st.session_state.chat_sessions.get(
         "index": None,
         "index_path": ""
     }
-    st.write("CURRENT CHAT =", current_chat)
-    st.write("PDF =", chat_data.get("pdf_name"))
-    st.write("MESSAGES =", len(chat_data["messages"]))
 )
+
+st.write("CURRENT CHAT =", current_chat)
+st.write("PDF =", chat_data.get("pdf_name"))
+st.write("MESSAGES =", len(chat_data["messages"]))
 
 # -------- LOAD FAISS INDEX --------
 
