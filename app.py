@@ -43,8 +43,6 @@ from streamlit_mic_recorder import (
     mic_recorder,
     speech_to_text
 )
-
-st.write("VERSION-999")
 # -------------------- CONFIG --------------------
 
 BASE_CHAT_DIR = "chats"
@@ -641,8 +639,6 @@ else:
 
     # ================= VOICE CONTAINER =================
 
-st.write("VOICE BLOCK LOADED")    
-
 voice_text = None
 
 voice_container = st.container()
@@ -656,8 +652,6 @@ with voice_container:
         just_once=False,
         key="voice"
     )
-
-    st.write("VOICE RAW =", repr(voice_text))
 
 if uploaded_file is not None and chat_data["index"] is None:
 
@@ -907,8 +901,6 @@ if question:
 if voice_text:
     user_question = voice_text
 
-st.write("USER QUESTION =", user_question)
-
 if user_question:
 
     if chat_data["index"] is None:
@@ -997,17 +989,10 @@ if user_question:
 
     #user_question= rewrite_response.choices[0].message.content.strip()
 
-    st.write("SEARCH QUESTION:", user_question)
-
-    st.write("VOICE =", voice_text)
-    st.write("USER =", user_question)
-
     question_embedding = model.encode([user_question])
 
     # FAISS SEARCH
     D, I = index.search(question_embedding, k=5)
-
-    st.write("FAISS RESULTS:", I)
 
     faiss_results = I[0]
 
@@ -1037,8 +1022,6 @@ if user_question:
     retrieved_pages = []
 
     for idx in top_results:
-
-        st.write("TOP RESULTS:", top_results)
 
         if idx < len(chunks):
 
