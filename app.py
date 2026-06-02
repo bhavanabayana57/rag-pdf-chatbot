@@ -717,8 +717,6 @@ if uploaded_file is not None and chat_data["index"] is None:
 
         chat_data["messages"] = []
 
-        save_data["messages"] = []
-
         chat_data["pdf_bytes"] = file_bytes
 
         # ---------- PROCESS ----------
