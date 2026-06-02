@@ -658,7 +658,7 @@ with voice_container:
     )
 
     st.write("VOICE RAW =", repr(voice_text))
-    
+
 if uploaded_file is not None and chat_data["index"] is None:
 
     # ---------- ONLY PROCESS NEW PDF ----------
@@ -898,8 +898,6 @@ question = st.chat_input(
 )
 
 # ---------------- USER QUESTION ----------------
-
-voice_text = None
 
 user_question = None
 
