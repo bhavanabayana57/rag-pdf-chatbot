@@ -739,8 +739,8 @@ if uploaded_file is not None and chat_data["index"] is None:
             chat_data["messages"] = []
             chat_data["chunks"] = []
             chat_data["chunk_pages"] = []
-            chat_data["index"] = None
-            chat_data["bm25"] = None
+            #chat_data["index"] = None
+            #chat_data["bm25"] = None
 
             save_data = chat_data.copy()
 
