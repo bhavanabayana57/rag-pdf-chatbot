@@ -729,6 +729,12 @@ if uploaded_file is not None and chat_data["index"] is None:
         else:
 
             documents = process_pdf(file_bytes)
+
+            chat_data["messages"] = []
+            chat_data["chunks"] = []
+            chat_data["chunk_pages"] = []
+            chat_data["index"] = None
+            chat_data["bm25"] = None
       
 
 
