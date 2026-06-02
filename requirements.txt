@@ -8,8 +8,9 @@ torch
 torchvision
 python-dotenv
 rank-bm25
-pdf2image
 pillow
 streamlit-mic-recorder
-pytesseract
 PyMuPDF
+easyocr
+opencv-python-headless
+pdf2image

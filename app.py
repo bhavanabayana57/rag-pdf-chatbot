@@ -11,6 +11,7 @@ import streamlit.components.v1 as components
 import uuid
 import json
 import hashlib
+import easyocr
 
 st.markdown("""
 <style>
@@ -39,6 +40,7 @@ from sentence_transformers import CrossEncoder
 from dotenv import load_dotenv
 from rank_bm25 import BM25Okapi
 from PIL import Image
+from pdf2image import convert_from_bytes
 from streamlit_mic_recorder import (
     mic_recorder,
     speech_to_text
@@ -121,6 +123,18 @@ client = OpenAI(
 
 # -------------------- LOAD MODEL --------------------
 
+reader = easyocr.Reader(['en'], gpu=False)
+
+def extract_text_from_image(img):
+
+    img_np = np.array(img)
+
+    result = reader.readtext(img_np)
+
+    text = " ".join([item[1] for item in result])
+
+    return text
+
 @st.cache_resource
 def load_embedding_model():
 
@@ -147,7 +161,19 @@ def process_pdf(file_bytes):
 
     for page_num, page in enumerate(pdf_document):
 
-        text = page.get_text()
+        text = page.get_text().strip()
+
+        if len(text) < 50:
+
+            page_image = page.get_pixmap(matrix=fitz.Matrix(2, 2))
+
+            img = Image.frombytes(
+                "RGB",
+                [page_image.width, page_image.height],
+                page_image.samples
+            )
+
+            text = extract_text_from_image(img)
 
         if not text.strip():
             continue
@@ -632,8 +658,8 @@ if chat_data["pdf_name"]:
 else:
 
     uploaded_file = st.file_uploader(
-        "Upload your PDF",
-        type="pdf",
+        "Upload PDF or Image",
+        type=["pdf", "png", "jpg", "jpeg"],
         key=current_chat
     )
 
@@ -682,7 +708,20 @@ if uploaded_file is not None and chat_data["index"] is None:
 
         # ---------- PROCESS ----------
 
-        documents = process_pdf(file_bytes)
+        if uploaded_file.type.startswith("image"):
+
+            image = Image.open(uploaded_file)
+
+            text = extract_text_from_image(image)
+
+            documents = [{
+                "text": text,
+                "page": 1
+            }]
+
+        else:
+
+            documents = process_pdf(file_bytes)
       
 
 
