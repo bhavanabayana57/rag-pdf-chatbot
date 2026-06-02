@@ -909,6 +909,8 @@ if question:
 if voice_text:
     user_question = voice_text
 
+st.write("USER QUESTION =", user_question)
+
 if user_question:
 
     if chat_data["index"] is None:
@@ -999,10 +1001,15 @@ if user_question:
 
     st.write("SEARCH QUESTION:", user_question)
 
+    st.write("VOICE =", voice_text)
+    st.write("USER =", user_question)
+
     question_embedding = model.encode([user_question])
 
     # FAISS SEARCH
     D, I = index.search(question_embedding, k=5)
+
+    st.write("FAISS RESULTS:", I)
 
     faiss_results = I[0]
 
@@ -1033,6 +1040,8 @@ if user_question:
 
     for idx in top_results:
 
+        st.write("TOP RESULTS:", top_results)
+
         if idx < len(chunks):
 
             retrieved_chunks.append(chunks[idx])
@@ -1050,7 +1059,7 @@ if user_question:
 
     best_score = max(scores)
 
-    if best_score < -20:
+    if best_score < -999:
 
         st.error(
             "This question does not appear to be related to the uploaded PDF."
