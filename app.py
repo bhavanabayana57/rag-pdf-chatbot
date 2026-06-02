@@ -123,7 +123,11 @@ client = OpenAI(
 
 # -------------------- LOAD MODEL --------------------
 
-reader = easyocr.Reader(['en'], gpu=False)
+@st.cache_resource
+def get_ocr_reader():
+    return easyocr.Reader(['en'], gpu=False)
+
+reader = get_ocr_reader()
 
 def extract_text_from_image(img):
 
