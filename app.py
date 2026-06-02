@@ -488,6 +488,9 @@ chat_data = st.session_state.chat_sessions.get(
         "index": None,
         "index_path": ""
     }
+    st.write("CURRENT CHAT =", current_chat)
+    st.write("PDF =", chat_data.get("pdf_name"))
+    st.write("MESSAGES =", len(chat_data["messages"]))
 )
 
 # -------- LOAD FAISS INDEX --------
@@ -711,6 +714,10 @@ if uploaded_file is not None and chat_data["index"] is None:
 
         chat_data["pdf_name"] = uploaded_file.name
 
+        chat_data["messages"] = []
+
+        save_data["messages"] = []
+
         chat_data["pdf_bytes"] = file_bytes
 
         # ---------- PROCESS ----------
@@ -735,6 +742,14 @@ if uploaded_file is not None and chat_data["index"] is None:
             chat_data["chunk_pages"] = []
             chat_data["index"] = None
             chat_data["bm25"] = None
+
+            save_data = chat_data.copy()
+
+            with open(
+                os.path.join(CHAT_DIR, current_chat, "data.pkl"),
+                "wb"
+            ) as f:
+                pickle.dump(save_data, f)
       
 
 
@@ -930,15 +945,6 @@ for message in messages:
             st.caption(f"Source Pages: {message['page']}")
 # ---------------- CHAT INPUT ----------------
 
-# ---------------- CHAT INPUT ----------------
-
-for msg in chat_data["messages"]:
-    with st.chat_message(msg["role"]):
-        st.markdown(msg["content"])
-
-        if "page" in msg:
-            st.caption(f"Source Pages: {msg['page']}")
-
 question = st.chat_input(
     "Ask a question from PDF"
 )
@@ -1004,13 +1010,14 @@ if user_question:
             "content": msg["content"]
         })
 
-        last_user_messages = [
-        msg["content"]
-        for msg in messages
-        if msg["role"] == "user"
-    ]
-        
-    recent_context = " ".join(last_user_messages[-3:])
+        if len(messages) == 1:
+            recent_context = ""
+        else:
+            recent_context = " ".join(
+                msg["content"]
+                for msg in messages[:-1]
+                if msg["role"] == "user"
+            )[-500:]
 
     context_question = f"""
     Previous conversation:
