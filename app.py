@@ -727,6 +727,9 @@ if uploaded_file is not None and chat_data["index"] is None:
 
             text = extract_text_from_image(image)
 
+            st.write("OCR TEXT LENGTH =", len(text))
+            st.write(text[:500])
+
             documents = [{
                 "text": text,
                 "page": 1
