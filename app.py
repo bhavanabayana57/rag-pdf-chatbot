@@ -683,6 +683,9 @@ with voice_container:
         key="voice"
     )
 
+    if voice_text:
+        st.session_state.voice_question = voice_text
+
 if uploaded_file is not None and chat_data["index"] is None:
 
     # ---------- ONLY PROCESS NEW PDF ----------
@@ -923,12 +926,12 @@ for message in messages:
 
 # ---------------- CHAT INPUT ----------------
 
-if "messages" not in st.session_state:
-    st.session_state.messages = []
-
-for msg in st.session_state.messages:
+for msg in chat_data["messages"]:
     with st.chat_message(msg["role"]):
         st.markdown(msg["content"])
+
+        if "page" in msg:
+            st.caption(f"Source Pages: {msg['page']}")
 
 question = st.chat_input(
     "Ask a question from PDF"
@@ -941,8 +944,11 @@ user_question = None
 if question:
     user_question = question
 
-if voice_text:
-    user_question = voice_text
+if "voice_question" in st.session_state:
+
+    user_question = st.session_state.voice_question
+
+    st.session_state.pop("voice_question", None)
 
 if user_question:
 
@@ -972,6 +978,9 @@ if user_question:
     bm25 = chat_data["bm25"]
 
     # USER MESSAGE
+
+    if user_question is None:
+        st.stop()
 
     messages.append({
         "role": "user",
@@ -1203,29 +1212,12 @@ if user_question:
     # CREATE CHAT TEXT
     chat_text = ""
 
-    if "messages" in st.session_state:
+    for msg in chat_data["messages"]:
 
-        for msg in st.session_state.messages:
+        role = msg["role"].upper()
+        content = msg["content"]
 
-            role = msg["role"].upper()
-            content = msg["content"]
-
-            chat_text += f"{role}: {content}\n\n"
-
-    # SAVE CHAT HISTORY
-
-    if "messages" not in st.session_state:
-        st.session_state.messages = []
-
-    st.session_state.messages.append({
-        "role": "user",
-        "content": question
-    })
-
-    st.session_state.messages.append({
-        "role": "assistant",
-        "content": full_response
-    })
+        chat_text += f"{role}: {content}\n\n"
 
     # SAVE ASSISTANT MESSAGE
 
