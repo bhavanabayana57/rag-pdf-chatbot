@@ -657,8 +657,8 @@ with voice_container:
         key="voice"
     )
 
-    st.write("Voice Text:", voice_text)
-
+    st.write("VOICE RAW =", repr(voice_text))
+    
 if uploaded_file is not None and chat_data["index"] is None:
 
     # ---------- ONLY PROCESS NEW PDF ----------
