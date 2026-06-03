@@ -490,10 +490,6 @@ chat_data = st.session_state.chat_sessions.get(
     }
 )
 
-st.write("CURRENT CHAT =", current_chat)
-st.write("PDF =", chat_data.get("pdf_name"))
-st.write("MESSAGES =", len(chat_data["messages"]))
-
 # -------- LOAD FAISS INDEX --------
 
 index = None
@@ -726,9 +722,6 @@ if uploaded_file is not None and chat_data["index"] is None:
             image = Image.open(uploaded_file)
 
             text = extract_text_from_image(image)
-
-            st.write("OCR TEXT LENGTH =", len(text))
-            st.write(text[:500])
 
             documents = [{
                 "text": text,
@@ -1150,14 +1143,6 @@ if user_question:
     if not retrieved_chunks:
         retrieved_chunks = chunks[:5]
 
-    st.write("QUESTION:", user_question)
-
-    st.write("TOP CHUNKS COUNT:", len(retrieved_chunks))
-
-    for i, chunk in enumerate(retrieved_chunks):
-        st.write(f"CHUNK {i+1}")
-        st.write(chunk[:500])
-
     context = "\n\n".join(retrieved_chunks)
 
     source_pages = ", ".join(
@@ -1169,7 +1154,7 @@ if user_question:
     prompt = f"""
     You are an intelligent AI study assistant.
 
-    Use the uploaded PDF as your primary knowledge source.
+    Use the uploaded PDF as your primary knowledge source, but explain concepts naturally in your own words.
 
     Your job is to understand the user's intent and answer naturally like ChatGPT.
 
@@ -1221,19 +1206,33 @@ if user_question:
         })
 
     conversation_history.append({
+        "role": "system",
+        "content": """
+    You are a professional AI assistant.
+
+    Answer naturally like ChatGPT.
+
+    Do not simply copy chunks.
+
+    Understand the user's intent.
+
+    Summarize information intelligently.
+
+    Use complete sentences and proper explanations.
+
+    Avoid repetitive wording.
+
+    Give direct, professional, human-like answers.
+    """
+    })
+
+    conversation_history.append({
         "role": "user",
         "content": prompt
     })
 
-    st.write("QUESTION =", user_question)
-
-    st.write("TOP CHUNKS")
-
-    for chunk in retrieved_chunks:
-        st.write(chunk[:1000])
-
     response = client.chat.completions.create(
-        model="llama-3.1-8b-instant",
+        model="llama-3.3-70b-versatile",
         
         messages=conversation_history,
 
