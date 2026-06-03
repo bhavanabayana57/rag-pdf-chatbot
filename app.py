@@ -1124,17 +1124,39 @@ if user_question:
         chunk
         for score, chunk, page in ranked_chunks[:5]
     ]
-    
 
     retrieved_pages = [
         page
         for score, chunk, page in ranked_chunks[:5]
     ]
+
+    # SPECIAL CASE FOR PDF OVERVIEW QUESTIONS
+
+    summary_questions = [
+        "what is this pdf about",
+        "what does this pdf define",
+        "summarize this pdf",
+        "summary of pdf",
+        "overview of pdf",
+        "explain this pdf"
+    ]
+
+    if any(q in user_question.lower() for q in summary_questions):
+        retrieved_chunks = chunks[:20]
+        retrieved_pages = list(range(1, 21))
+
     # CONTEXT
 
     if not retrieved_chunks:
-
         retrieved_chunks = chunks[:5]
+
+    st.write("QUESTION:", user_question)
+
+    st.write("TOP CHUNKS COUNT:", len(retrieved_chunks))
+
+    for i, chunk in enumerate(retrieved_chunks):
+        st.write(f"CHUNK {i+1}")
+        st.write(chunk[:500])
 
     context = "\n\n".join(retrieved_chunks)
 
