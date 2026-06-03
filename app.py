@@ -951,12 +951,10 @@ user_question = None
 if question:
     user_question = question
 
-if "voice_question" in st.session_state:
-
+elif "voice_question" in st.session_state:
     user_question = st.session_state.voice_question
-
     st.session_state.pop("voice_question", None)
-
+    
 if user_question:
 
     if chat_data["index"] is None:
