@@ -1122,12 +1122,13 @@ if user_question:
 
     retrieved_chunks = [
         chunk
-        for score, chunk, page in ranked_chunks[:3]
+        for score, chunk, page in ranked_chunks[:5]
     ]
+    
 
     retrieved_pages = [
         page
-        for score, chunk, page in ranked_chunks[:3]
+        for score, chunk, page in ranked_chunks[:5]
     ]
     # CONTEXT
 
@@ -1184,7 +1185,7 @@ if user_question:
 
     USER QUESTION:
 
-    {question}
+    {user_question}
     """
 
     # LLM RESPONSE
@@ -1201,6 +1202,13 @@ if user_question:
         "role": "user",
         "content": prompt
     })
+
+    st.write("QUESTION =", user_question)
+
+    st.write("TOP CHUNKS")
+
+    for chunk in retrieved_chunks:
+        st.write(chunk[:1000])
 
     response = client.chat.completions.create(
         model="llama-3.1-8b-instant",
