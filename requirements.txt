@@ -11,6 +11,7 @@ rank-bm25
 pillow
 streamlit-mic-recorder
 PyMuPDF
+pdf2image
 easyocr
 opencv-python-headless
-pdf2image
+pytesseract

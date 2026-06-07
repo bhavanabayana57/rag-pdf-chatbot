@@ -12,6 +12,11 @@ import uuid
 import json
 import hashlib
 import easyocr
+import pytesseract
+
+pytesseract.pytesseract.tesseract_cmd = (
+    r"C:\Program Files\Tesseract-OCR\tesseract.exe"
+)
 
 st.markdown("""
 <style>
@@ -713,9 +718,22 @@ if uploaded_file is not None and chat_data["index"] is None:
 
         chat_data["messages"] = []
 
+        messages = []
+
+        st.session_state.pop("voice_question", None)
+        st.session_state.pop("pending_question", None)
+
         chat_data["pdf_bytes"] = file_bytes
 
         # ---------- PROCESS ----------
+
+        chat_data["messages"] = []
+        chat_data["chunks"] = []
+        chat_data["chunk_pages"] = []
+        chat_data["index"] = None
+        chat_data["bm25"] = None
+
+        st.session_state.pop("voice_question", None)
 
         if uploaded_file.type.startswith("image"):
 
@@ -723,20 +741,20 @@ if uploaded_file is not None and chat_data["index"] is None:
 
             text = extract_text_from_image(image)
 
+            st.write("OCR TEXT:")
+            st.write(text[:3000])
+
+            if not text.strip():
+                st.error("No text extracted from image")
+                st.stop()
+
             documents = [{
                 "text": text,
                 "page": 1
             }]
-
         else:
 
             documents = process_pdf(file_bytes)
-
-            chat_data["messages"] = []
-            chat_data["chunks"] = []
-            chat_data["chunk_pages"] = []
-            #chat_data["index"] = None
-            #chat_data["bm25"] = None
 
             save_data = chat_data.copy()
 
@@ -982,6 +1000,21 @@ if user_question:
 
     bm25 = chat_data["bm25"]
 
+    general_questions = [
+        "what this pdf",
+        "what is this pdf",
+        "what this document",
+        "summary",
+        "overview",
+        "briefly say"
+    ]
+
+    if any(q in user_question.lower() for q in general_questions):
+
+        retrieved_chunks = chunks[:20]
+
+        retrieved_pages = chunk_pages[:20]
+
     # USER MESSAGE
 
     if user_question is None:
@@ -1113,7 +1146,7 @@ if user_question:
 
     retrieved_chunks = [
         chunk
-        for score, chunk, page in ranked_chunks[:5]
+        for score, chunk, page in ranked_chunks[:10]
     ]
 
     retrieved_pages = [
@@ -1141,7 +1174,7 @@ if user_question:
     if not retrieved_chunks:
         retrieved_chunks = chunks[:5]
 
-    context = "\n\n".join(retrieved_chunks)
+    context = "\n\n".join(retrieved_chunks[:8])
 
     source_pages = ", ".join(
         [str(p) for p in retrieved_pages]
