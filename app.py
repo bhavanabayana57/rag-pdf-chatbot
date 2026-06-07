@@ -716,22 +716,11 @@ if uploaded_file is not None and chat_data["index"] is None:
 
         chat_data["pdf_name"] = uploaded_file.name
 
-        st.session_state.pop("voice_question", None)
-        st.session_state.pop("pending_question", None)
-
-        st.rerun()
-
-
         chat_data["messages"] = []
         messages = []
 
-        save_data = chat_data.copy()
-
-        with open(
-            os.path.join(CHAT_DIR, current_chat, "data.pkl"),
-            "wb"
-        ) as f:
-            pickle.dump(save_data, f)
+        st.session_state.pop("voice_question", None)
+        st.session_state.pop("pending_question", None)
 
         chat_data["pdf_bytes"] = file_bytes
 
