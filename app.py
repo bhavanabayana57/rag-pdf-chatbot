@@ -716,12 +716,22 @@ if uploaded_file is not None and chat_data["index"] is None:
 
         chat_data["pdf_name"] = uploaded_file.name
 
-        chat_data["messages"] = []
-
-        messages = []
-
         st.session_state.pop("voice_question", None)
         st.session_state.pop("pending_question", None)
+
+        st.rerun()
+
+
+        chat_data["messages"] = []
+        messages = []
+
+        save_data = chat_data.copy()
+
+        with open(
+            os.path.join(CHAT_DIR, current_chat, "data.pkl"),
+            "wb"
+        ) as f:
+            pickle.dump(save_data, f)
 
         chat_data["pdf_bytes"] = file_bytes
 
@@ -740,9 +750,6 @@ if uploaded_file is not None and chat_data["index"] is None:
             image = Image.open(uploaded_file)
 
             text = extract_text_from_image(image)
-
-            st.write("OCR TEXT:")
-            st.write(text[:3000])
 
             if not text.strip():
                 st.error("No text extracted from image")
@@ -927,6 +934,8 @@ if (
 
 messages = chat_data["messages"]
 
+st.write("MESSAGES LENGTH:", len(messages))
+
 chunks = chat_data["chunks"]
 
 chunk_pages = chat_data["chunk_pages"]
@@ -971,7 +980,9 @@ if question:
 
 elif "voice_question" in st.session_state:
     user_question = st.session_state.voice_question
+
     st.session_state.pop("voice_question", None)
+    st.session_state.pop("pending_question", None)
     
 if user_question:
 
@@ -1301,6 +1312,9 @@ if user_question:
         "content": full_response,
         "page": source_pages
     })
+
+    st.session_state.pop("voice_question", None)
+    st.session_state.pop("pending_question", None)
 
     chat_data["messages"] = messages
 
