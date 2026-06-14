@@ -689,7 +689,12 @@ with voice_container:
     )
 
     if voice_text:
-        st.session_state.voice_question = voice_text
+
+        if st.session_state.get("last_voice_text") != voice_text:
+
+            st.session_state.voice_question = voice_text
+
+            st.session_state.last_voice_text = voice_text
 
 if uploaded_file is not None and chat_data["index"] is None:
 
@@ -721,6 +726,7 @@ if uploaded_file is not None and chat_data["index"] is None:
 
         st.session_state.pop("voice_question", None)
         st.session_state.pop("pending_question", None)
+        st.session_state.pop("last_voice_text", None)
 
         chat_data["pdf_bytes"] = file_bytes
 
@@ -974,6 +980,8 @@ elif "voice_question" in st.session_state:
     st.session_state.pop("voice_question", None)
     st.session_state.pop("pending_question", None)
 
+    st.write("VOICE:", st.session_state.get("voice_question"))
+    st.write("QUESTION:", question)
     st.write("USER QUESTION:", user_question)
     
 if user_question:
