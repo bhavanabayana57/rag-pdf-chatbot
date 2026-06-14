@@ -249,6 +249,8 @@ for chat_name in existing_chats:
 
         st.session_state.chat_sessions[chat_name] = {}
 
+    chat_data = st.session_state.chat_sessions[chat_name]
+
     if "index_path" in chat_data:
 
             if os.path.exists(chat_data["index_path"]):
