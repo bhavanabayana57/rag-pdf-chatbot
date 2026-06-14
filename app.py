@@ -249,7 +249,18 @@ for chat_name in existing_chats:
 
         st.session_state.chat_sessions[chat_name] = {}
 
-    chat_data = st.session_state.chat_sessions[chat_name]
+        current_chat = st.session_state.current_chat
+
+    chat_data = st.session_state.chat_sessions.get(
+        current_chat,
+        {
+            "messages": [],
+            "pdf_name": "",
+            "chunks": [],
+            "chunk_pages": [],
+            "index": None
+        }
+    )
 
     if "index_path" in chat_data:
 
@@ -258,26 +269,6 @@ for chat_name in existing_chats:
                 chat_data["index"] = faiss.read_index(
                     chat_data["index_path"]
                 )    
-
-    if chat_name not in st.session_state.chat_sessions:
-
-        st.session_state.chat_sessions[chat_name] = {
-            "messages": [],
-            "pdf_name": "",
-            "chunks": [],
-            "chunk_pages": [],
-            "index": None
-        }
-
-    chat_data = st.session_state.chat_sessions[chat_name]
-
-    if "index_path" in chat_data and os.path.exists(chat_data["index_path"]):
-
-        chat_data["index"] = faiss.read_index(chat_data["index_path"])
-
-    else:
-
-        chat_data["index"] = None
 
 # -------------------- FIRST CHAT --------------------
 
@@ -409,6 +400,10 @@ with st.sidebar:
             exist_ok=True
         )
 
+        st.session_state.pop("voice_question", None)
+        st.session_state.pop("pending_question", None)
+        st.session_state.pop("last_voice_text", None)
+
         st.session_state.current_chat = new_chat
 
         st.rerun()
@@ -450,10 +445,13 @@ with st.sidebar:
                 key=f"chat_{chat_name}",
                 use_container_width=True
             ):
+               st.session_state.pop("voice_question", None)
+               st.session_state.pop("pending_question", None)
+               st.session_state.pop("last_voice_text", None)
 
-                st.session_state.current_chat = chat_name
+               st.session_state.current_chat = new_chat
 
-                st.rerun()
+               st.rerun()
 
         with col2:
 
@@ -685,8 +683,10 @@ with voice_container:
     voice_text = speech_to_text(
         language="en",
         just_once=False,
-        key="voice"
+        key=f"voice_{current_chat}"
     )
+
+    st.write("VOICE TEXT RAW:", voice_text)
 
     if voice_text:
 
@@ -979,6 +979,7 @@ elif "voice_question" in st.session_state:
 
     st.session_state.pop("voice_question", None)
     st.session_state.pop("pending_question", None)
+    st.session_state.pop("last_voice_text", None)
 
     st.write("VOICE:", st.session_state.get("voice_question"))
     st.write("QUESTION:", question)
@@ -1321,6 +1322,7 @@ if user_question:
 
     st.session_state.pop("voice_question", None)
     st.session_state.pop("pending_question", None)
+    st.session_state.pop("last_voice_text", None)
 
     chat_data["messages"] = messages
 
