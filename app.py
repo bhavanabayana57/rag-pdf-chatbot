@@ -140,6 +140,8 @@ def extract_text_from_image(img):
 
     result = reader.readtext(img_np)
 
+    st.write("OCR RESULT:", result)
+
     text = " ".join([item[1] for item in result])
 
     return text
@@ -647,7 +649,7 @@ if chat_data["pdf_name"] != "":
 
 if chat_data["pdf_name"]:
 
-    st.info(f"Uploaded PDF: {chat_data['pdf_name']}")
+    st.info(f"Uploaded File: {chat_data['pdf_name']}")
 
     uploaded_file = None
 
@@ -740,7 +742,14 @@ if uploaded_file is not None and chat_data["index"] is None:
 
             image = Image.open(uploaded_file)
 
+            image = image.convert("L")      # grayscale
+
+            image = image.resize(
+                (image.width * 2, image.height * 2)
+            )
+
             text = extract_text_from_image(image)
+            st.image(image, caption="Uploaded Image")
 
             st.write("OCR TEXT:")
             st.write(text)
