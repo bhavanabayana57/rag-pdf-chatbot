@@ -132,7 +132,7 @@ client = OpenAI(
 def get_ocr_reader():
     return easyocr.Reader(['en'], gpu=False)
 
-reader = get_ocr_reader()
+reader = None
 
 def extract_text_from_image(img):
 
@@ -748,7 +748,7 @@ if uploaded_file is not None and chat_data["index"] is None:
                 (image.width * 2, image.height * 2)
             )
 
-            text = extract_text_from_image(image)
+            text = "TEST OCR TEXT"
             st.image(image, caption="Uploaded Image")
 
             st.write("OCR TEXT:")
