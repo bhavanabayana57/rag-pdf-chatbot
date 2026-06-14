@@ -733,6 +733,9 @@ if uploaded_file is not None and chat_data["index"] is None:
 
             text = extract_text_from_image(image)
 
+            st.write("OCR TEXT:")
+            st.write(text[:1000])
+
             if not text.strip():
                 st.error("No text extracted from image")
                 st.stop()
