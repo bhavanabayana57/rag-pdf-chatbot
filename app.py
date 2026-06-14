@@ -732,8 +732,6 @@ if uploaded_file is not None and chat_data["index"] is None:
         chat_data["index"] = None
         chat_data["bm25"] = None
 
-        st.session_state.pop("voice_question", None)
-
         if uploaded_file.type.startswith("image"):
 
             image = Image.open(uploaded_file)
@@ -960,6 +958,9 @@ question = st.chat_input(
     "Ask a question from PDF"
 )
 
+st.write("VOICE:", st.session_state.get("voice_question"))
+st.write("QUESTION:", question)
+
 # ---------------- USER QUESTION ----------------
 
 user_question = None
@@ -972,6 +973,8 @@ elif "voice_question" in st.session_state:
 
     st.session_state.pop("voice_question", None)
     st.session_state.pop("pending_question", None)
+
+    st.write("USER QUESTION:", user_question)
     
 if user_question:
 
@@ -1127,16 +1130,37 @@ if user_question:
         for chunk in retrieved_chunks
     ]
 
+    # SUMMARY QUESTION CHECK
+    summary_questions = [
+        "what is this pdf about",
+        "what does this pdf define",
+        "what this pdf defines",
+        "what this pdf actually defines",
+        "briefly say about this",
+        "what is this document",
+        "summary",
+        "overview",
+        "explain this pdf",
+        "summarize this pdf"
+    ]
+
+    is_summary_question = any(
+        q in user_question.lower()
+        for q in summary_questions
+    )
+
+    if is_summary_question:
+        retrieved_chunks = chunks[:min(50, len(chunks))]
+        retrieved_pages = chunk_pages[:min(50, len(chunk_pages))]
+
     scores = reranker.predict(pairs)
 
     best_score = max(scores)
 
-    if best_score < -999:
-
+    if best_score < -999 and not is_summary_question:
         st.error(
             "This question does not appear to be related to the uploaded PDF."
         )
-
         st.stop()
 
     ranked_chunks = sorted(
@@ -1153,21 +1177,6 @@ if user_question:
         page
         for score, chunk, page in ranked_chunks[:5]
     ]
-
-    # SPECIAL CASE FOR PDF OVERVIEW QUESTIONS
-
-    summary_questions = [
-        "what is this pdf about",
-        "what does this pdf define",
-        "summarize this pdf",
-        "summary of pdf",
-        "overview of pdf",
-        "explain this pdf"
-    ]
-
-    if any(q in user_question.lower() for q in summary_questions):
-        retrieved_chunks = chunks[:20]
-        retrieved_pages = list(range(1, 21))
 
     # CONTEXT
 
