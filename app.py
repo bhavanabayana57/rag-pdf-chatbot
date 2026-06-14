@@ -685,6 +685,11 @@ with voice_container:
 
             st.session_state.last_voice_text = voice_text
 
+            st.write("UPLOADED FILE:", uploaded_file)
+
+            if uploaded_file is not None:
+                st.write("FILE TYPE:", uploaded_file.type)
+
 if uploaded_file is not None and chat_data["index"] is None:
 
     # ---------- ONLY PROCESS NEW PDF ----------
@@ -729,12 +734,16 @@ if uploaded_file is not None and chat_data["index"] is None:
 
         if uploaded_file.type.startswith("image"):
 
+            st.write("IMAGE DETECTED")
+            st.write("FILE NAME:", uploaded_file.name)
+            st.write("FILE TYPE:", uploaded_file.type)
+
             image = Image.open(uploaded_file)
 
             text = extract_text_from_image(image)
 
             st.write("OCR TEXT:")
-            st.write(text[:1000])
+            st.write(text)
 
             if not text.strip():
                 st.error("No text extracted from image")
