@@ -14,10 +14,6 @@ import hashlib
 import easyocr
 import pytesseract
 
-pytesseract.pytesseract.tesseract_cmd = (
-    r"C:\Program Files\Tesseract-OCR\tesseract.exe"
-)
-
 st.markdown("""
 <style>
 
@@ -132,13 +128,17 @@ client = OpenAI(
 def get_ocr_reader():
     return easyocr.Reader(['en'], gpu=False)
 
-reader = None
+reader = get_ocr_reader()
+
+st.write("OCR Loaded")
 
 def extract_text_from_image(img):
-
     img_np = np.array(img)
 
-    result = reader.readtext(img_np)
+    result = reader.readtext(
+        img_np,
+        paragraph=True
+    )
 
     st.write("OCR RESULT:", result)
 
@@ -441,7 +441,7 @@ with st.sidebar:
                st.session_state.pop("last_voice_text", None)
 
                st.session_state.current_chat = chat_name
-               
+
                st.rerun()
 
         with col2:
@@ -745,7 +745,7 @@ if uploaded_file is not None and chat_data["index"] is None:
             image = image.convert("L")      # grayscale
 
             image = image.resize(
-                (image.width * 2, image.height * 2)
+                (image.width * 3, image.height * 3)
             )
 
             text = "TEST OCR TEXT"
@@ -1210,6 +1210,12 @@ if user_question:
 
     # PROMPT
 
+    st.write("USER QUESTION:", user_question)
+
+    st.write("RETRIEVED CHUNKS:")
+    for chunk in retrieved_chunks[:3]:
+        st.write(chunk[:500])
+
     prompt = f"""
     You are an intelligent AI study assistant.
 
@@ -1240,12 +1246,10 @@ if user_question:
     6. Maintain conversation context.
     7. Use proper headings and bullet points.
     8. Give professional and student-friendly answers.
-    9. Do not invent topics that are completely unrelated to the PDF.
-   10. If the question is completely outside the PDF, DO NOT answer it.
-
-    Simply respond:
-
-    "This question does not appear to be related to the uploaded PDF."
+    9. Try to answer using the uploaded document or image content.
+    10. If the document content is unclear,
+    explain what information could be extracted
+    instead of saying the question is unrelated.
 
     {context}
 
