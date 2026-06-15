@@ -440,8 +440,8 @@ with st.sidebar:
                st.session_state.pop("pending_question", None)
                st.session_state.pop("last_voice_text", None)
 
-               st.session_state.current_chat = new_chat
-
+               st.session_state.current_chat = chat_name
+               
                st.rerun()
 
         with col2:
