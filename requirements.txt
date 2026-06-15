@@ -14,4 +14,3 @@ PyMuPDF
 pdf2image
 easyocr
 opencv-python-headless
-pytesseract

@@ -12,7 +12,6 @@ import uuid
 import json
 import hashlib
 import easyocr
-import pytesseract
 
 st.markdown("""
 <style>
@@ -128,11 +127,16 @@ client = OpenAI(
 def get_ocr_reader():
     return easyocr.Reader(['en'], gpu=False)
 
+st.write("OCR Loading...")
+
 reader = get_ocr_reader()
 
 st.write("OCR Loaded")
 
 def extract_text_from_image(img):
+
+    st.write("INSIDE OCR FUNCTION")
+
     img_np = np.array(img)
 
     result = reader.readtext(
@@ -185,6 +189,8 @@ def process_pdf(file_bytes):
             )
 
             text = extract_text_from_image(img)
+
+            st.write("OCR TEXT DEBUG:", text)
 
         if not text.strip():
             continue
@@ -385,6 +391,9 @@ with st.sidebar:
             "index": None,
             "index_path": ""
         }
+
+        st.session_state.current_chat = new_chat
+        st.rerun()
 
         os.makedirs(
             os.path.join(CHAT_DIR, new_chat),
@@ -748,10 +757,9 @@ if uploaded_file is not None and chat_data["index"] is None:
                 (image.width * 3, image.height * 3)
             )
 
-            text = "TEST OCR TEXT"
             st.image(image, caption="Uploaded Image")
 
-            st.write("OCR TEXT:")
+            st.write("OCR TEXT DEBUG:", text)
             st.write(text)
 
             if not text.strip():
