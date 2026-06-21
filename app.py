@@ -188,7 +188,7 @@ def process_pdf(file_bytes):
                 page_image.samples
             )
 
-            text = extract_text_from_image(image)
+            text = extract_text_from_image(img)
 
             st.write("OCR TEXT DEBUG:", text)
 
