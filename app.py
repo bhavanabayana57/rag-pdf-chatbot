@@ -775,6 +775,14 @@ if uploaded_file is not None and chat_data["index"] is None:
 
             documents = process_pdf(file_bytes)
 
+            st.write("DOCUMENTS COUNT:", len(documents))
+
+            for doc in documents[:5]:
+                st.write(doc)
+
+            st.write("FIRST DOCUMENT TEXT:")
+            st.write(documents[0]["text"][:1000])
+
             save_data = chat_data.copy()
 
             with open(
