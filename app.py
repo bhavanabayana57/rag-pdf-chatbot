@@ -188,17 +188,17 @@ def process_pdf(file_bytes):
                 page_image.samples
             )
 
-            text = extract_text_from_image(img)
+            text = extract_text_from_image(image)
 
             st.write("OCR TEXT DEBUG:", text)
 
-        if not text.strip():
-            continue
+            if not text.strip():
+                continue
 
-        documents.append({
-            "text": text,
-            "page": page_num + 1
-        })
+            documents.append({
+                "text": text,
+                "page": page_num + 1
+            })
 
     return documents
 
@@ -759,18 +759,19 @@ if uploaded_file is not None and chat_data["index"] is None:
 
             st.image(image, caption="Uploaded Image")
 
-            st.write("OCR TEXT DEBUG:", text)
-            st.write(text)
+            ocr_text = extract_text_from_image(image)
 
-            if not text.strip():
+            st.write("OCR TEXT DEBUG:", ocr_text)
+
+            if not ocr_text.strip():
                 st.error("No text extracted from image")
                 st.stop()
 
             documents = [{
-                "text": text,
+                "text": ocr_text,
                 "page": 1
             }]
-        else:
+            else:
 
             documents = process_pdf(file_bytes)
 
