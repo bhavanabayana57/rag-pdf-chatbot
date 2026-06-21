@@ -771,7 +771,7 @@ if uploaded_file is not None and chat_data["index"] is None:
                 "text": ocr_text,
                 "page": 1
             }]
-            else:
+        else:
 
             documents = process_pdf(file_bytes)
 
