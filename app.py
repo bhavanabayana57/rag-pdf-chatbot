@@ -848,6 +848,8 @@ if uploaded_file is not None and chat_data["index"] is None:
 
         embeddings = np.array(embeddings).astype("float32")
 
+        chat_data["index"] = index
+
         index.add(embeddings)
 
         chat_path = os.path.join(CHAT_DIR, current_chat)
