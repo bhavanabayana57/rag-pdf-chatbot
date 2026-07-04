@@ -176,29 +176,29 @@ def process_pdf(file_bytes):
 
     for page_num, page in enumerate(pdf_document):
 
-        text = page.get_text().strip()
+        text = page.get_text("text").strip()
 
-        if len(text) < 50:
+        # scanned pdf fallback OCR
+        if len(text) < 20:
 
-            page_image = page.get_pixmap(matrix=fitz.Matrix(2, 2))
+            pix = page.get_pixmap(dpi=300)
 
             img = Image.frombytes(
                 "RGB",
-                [page_image.width, page_image.height],
-                page_image.samples
+                [pix.width, pix.height],
+                pix.samples
             )
 
             text = extract_text_from_image(img)
 
-            st.write("OCR TEXT DEBUG:", text)
 
-            if not text.strip():
-                continue
+        if text.strip():
 
             documents.append({
                 "text": text,
                 "page": page_num + 1
             })
+
 
     return documents
 
@@ -796,7 +796,11 @@ if uploaded_file is not None and chat_data["index"] is None:
                 st.write(doc)
 
             st.write("FIRST DOCUMENT TEXT:")
-            st.write(documents[0]["text"][:1000])
+            if len(documents) > 0:
+                st.write("FIRST DOCUMENT TEXT:")
+                st.write(documents[0]["text"][:1000])
+            else:
+                st.error("NO DOCUMENTS EXTRACTED")
 
             save_data = chat_data.copy()
 
