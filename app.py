@@ -12,6 +12,7 @@ import uuid
 import json
 import hashlib
 import easyocr
+import traceback
 
 st.markdown("""
 <style>
@@ -1398,7 +1399,14 @@ if user_question:
 
     chat_path = os.path.join(CHAT_DIR, current_chat)
 
+try:
+
     data_path = os.path.join(chat_path, "data.pkl")
 
     with open(data_path, "wb") as f:
         pickle.dump(save_data, f)
+
+except Exception:
+
+    st.error("REAL ERROR")
+    st.code(traceback.format_exc())        
