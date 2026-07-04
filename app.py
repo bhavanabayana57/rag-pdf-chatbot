@@ -480,6 +480,20 @@ with st.sidebar:
 
 current_chat = st.session_state.current_chat
 
+chat = st.session_state.chat_sessions[current_chat]
+
+chat.setdefault("messages", [])
+chat.setdefault("pdf_name", "")
+chat.setdefault("pdf_bytes", None)
+
+chat.setdefault("chunks", [])
+chat.setdefault("chunk_pages", [])
+
+chat.setdefault("index", None)
+chat.setdefault("index_path", "")
+
+chat.setdefault("bm25", None)
+
 chat_data = st.session_state.chat_sessions.get(
     current_chat,
     {
@@ -489,7 +503,8 @@ chat_data = st.session_state.chat_sessions.get(
         "chunks": [],
         "chunk_pages": [],
         "index": None,
-        "index_path": ""
+        "index_path": "",
+        "bm25": None
     }
 )
 
