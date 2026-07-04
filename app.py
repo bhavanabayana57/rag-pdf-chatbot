@@ -382,14 +382,14 @@ with st.sidebar:
         new_chat = f"Chat {len(st.session_state.chat_sessions)+1}"
 
         st.session_state.chat_sessions[new_chat] = {
-
             "messages": [],
             "pdf_name": "",
             "pdf_bytes": None,
             "chunks": [],
             "chunk_pages": [],
             "index": None,
-            "index_path": ""
+            "index_path": "",
+            "bm25": None
         }
 
         st.session_state.current_chat = new_chat
