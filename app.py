@@ -777,6 +777,15 @@ if uploaded_file is not None and chat_data["index"] is None:
 
             st.write("DOCUMENTS COUNT:", len(documents))
 
+            if len(documents) > 0:
+                st.write("FIRST DOCUMENT:")
+                st.write(documents[0])
+
+                st.write("FIRST DOCUMENT TEXT:")
+                st.write(documents[0]["text"][:2000])
+
+            st.write("DOCUMENTS COUNT:", len(documents))
+
             for i, doc in enumerate(documents[:5]):
                 st.write(f"DOC {i}")
                 st.write(doc)
