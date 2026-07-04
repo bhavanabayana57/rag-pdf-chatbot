@@ -1399,9 +1399,22 @@ if user_question:
 
     chat_path = os.path.join(CHAT_DIR, current_chat)
 
-try:
+    chat_path = os.path.join(
+        CHAT_DIR,
+        current_chat
+    )
 
-    data_path = os.path.join(chat_path, "data.pkl")
+    os.makedirs(
+        chat_path,
+        exist_ok=True
+    )
+
+    data_path = os.path.join(
+        chat_path,
+        "data.pkl"
+    )
+
+try:
 
     with open(data_path, "wb") as f:
         pickle.dump(save_data, f)
