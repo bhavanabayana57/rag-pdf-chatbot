@@ -403,42 +403,53 @@ with st.sidebar:
 
     st.title("Chats")
 
-    # ---------- NEW CHAT ----------
+        # ---------- NEW CHAT ----------
 
-    if st.button("➕ New Chat", use_container_width=True):
+    if st.button("➕ New Chat"):
 
-        new_chat = f"Chat {len(st.session_state.chat_sessions)+1}"
+            # save old chat safely
+            if "current_chat" in st.session_state:
 
-        st.session_state.chat_sessions[new_chat] = {
-            "messages": [],
-            "pdf_name": "",
-            "pdf_bytes": None,
-            "chunks": [],
-            "chunk_pages": [],
-            "index": None,
-            "index_path": "",
-            "bm25": None
-        }
+                old_chat = st.session_state.current_chat
 
-        st.session_state.current_chat = new_chat
-        st.rerun()
+                if old_chat in st.session_state.chat_sessions:
+                    save_current_chat(
+                        old_chat,
+                        st.session_state.chat_sessions[old_chat]
+                    )
 
-        os.makedirs(
-            os.path.join(CHAT_DIR, new_chat),
-            exist_ok=True
-        )
 
-        st.session_state.pop("voice_question", None)
-        st.session_state.pop("pending_question", None)
-        st.session_state.pop("last_voice_text", None)
+            new_chat = f"Chat {len(st.session_state.chat_sessions)+1}"
 
-        st.session_state.current_chat = new_chat
+            st.session_state.chat_sessions[new_chat] = {
+                "messages": [],
+                "pdf_name": "",
+                "pdf_bytes": None,
+                "chunks": [],
+                "chunk_pages": [],
+                "index": None,
+                "index_path": "",
+                "bm25": None
+            }
 
-        st.rerun()
+            st.session_state.current_chat = new_chat
+
+            os.makedirs(
+                os.path.join(CHAT_DIR, new_chat),
+                exist_ok=True
+            )
+
+            st.session_state.pop("voice_question", None)
+            st.session_state.pop("pending_question", None)
+            st.session_state.pop("last_voice_text", None)
+
+            st.session_state.current_chat = new_chat
+
+            st.rerun()
 
     st.subheader("Previous Chats")
-     
-    # ---------- RENAME CHAT ----------
+        
+        # ---------- RENAME CHAT ----------
 
     new_name = st.text_input("Rename Current Chat")
 
