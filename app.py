@@ -274,7 +274,10 @@ for chat_name in existing_chats:
                     for chunk in chat_data["chunks"]
                 ]
 
-            chat_data["bm25"] = BM25Okapi(tokenized_chunks)
+            if len(tokenized_chunks) > 0:
+                chat_data["bm25"] = BM25Okapi(tokenized_chunks)
+            else:
+                chat_data["bm25"] = None
 
         st.session_state.chat_sessions[chat_name] = chat_data
 
