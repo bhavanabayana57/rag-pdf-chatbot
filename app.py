@@ -184,9 +184,15 @@ def load_embedding_model():
 
 model = load_embedding_model()
 
-reranker = CrossEncoder(
-    "cross-encoder/ms-marco-MiniLM-L-6-v2"
-)
+@st.cache_resource
+def load_reranker():
+
+    return CrossEncoder(
+        "cross-encoder/ms-marco-MiniLM-L-6-v2"
+    )
+
+
+reranker = load_reranker()
 # -------------------- PDF PROCESSING --------------------
 
 @st.cache_data
