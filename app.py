@@ -547,6 +547,14 @@ chat_data = st.session_state.chat_sessions.get(
     }
 )
 
+# protect empty new chat
+if (
+    chat_data["index"] is None 
+    or chat_data["bm25"] is None
+    or len(chat_data["chunks"]) == 0
+):
+    st.info("Upload a PDF to start this chat")
+
 # -------- LOAD FAISS INDEX --------
 
 index = None
@@ -1197,6 +1205,9 @@ if user_question:
     question_embedding = model.encode([user_question])
 
     # FAISS SEARCH
+    if chat_data["index"] is None:
+        st.stop()
+
     D, I = index.search(question_embedding, k=5)
 
     faiss_results = I[0]
