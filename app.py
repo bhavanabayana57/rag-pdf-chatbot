@@ -108,6 +108,30 @@ if "share" in query_params:
                 )
 
         st.stop()
+
+def save_current_chat(current_chat, chat):
+
+    chat_path = os.path.join(
+        CHAT_DIR,
+        current_chat
+    )
+
+    os.makedirs(
+        chat_path,
+        exist_ok=True
+    )
+
+    save_data = chat.copy()
+
+    save_data["index"] = None
+
+    data_path = os.path.join(
+        chat_path,
+        "data.pkl"
+    )
+
+    with open(data_path, "wb") as f:
+        pickle.dump(save_data, f)
 # -------------------- LOAD ENV --------------------
 
 load_dotenv()
@@ -1393,33 +1417,7 @@ if user_question:
     st.session_state.pop("last_voice_text", None)
 
     chat_data["messages"] = messages
-
-    save_data = chat_data.copy()
-    save_data["index"] = None
-
-    chat_path = os.path.join(CHAT_DIR, current_chat)
-
-    chat_path = os.path.join(
-        CHAT_DIR,
-        current_chat
+    save_current_chat(
+        current_chat,
+        chat_data
     )
-
-    os.makedirs(
-        chat_path,
-        exist_ok=True
-    )
-
-    data_path = os.path.join(
-        chat_path,
-        "data.pkl"
-    )
-
-try:
-
-    with open(data_path, "wb") as f:
-        pickle.dump(save_data, f)
-
-except Exception:
-
-    st.error("REAL ERROR")
-    st.code(traceback.format_exc())        
