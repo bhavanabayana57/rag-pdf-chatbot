@@ -1417,7 +1417,13 @@ if user_question:
     st.session_state.pop("last_voice_text", None)
 
     chat_data["messages"] = messages
+
+try:
     save_current_chat(
         current_chat,
         chat_data
     )
+
+except Exception:
+    st.error("REAL ERROR")
+    st.code(traceback.format_exc())
