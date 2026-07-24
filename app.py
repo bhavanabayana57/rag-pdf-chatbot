@@ -42,10 +42,7 @@ from dotenv import load_dotenv
 from rank_bm25 import BM25Okapi
 from PIL import Image
 from pdf2image import convert_from_bytes
-from streamlit_mic_recorder import (
-    mic_recorder,
-    speech_to_text
-)
+from audio_recorder_streamlit import audio_recorder
 # -------------------- CONFIG --------------------
 
 BASE_CHAT_DIR = "chats"
@@ -704,11 +701,19 @@ with voice_container:
 
     st.markdown("### 🎤 Voice Input")
 
-    voice_text = speech_to_text(
-        language="en",
-        just_once=True,
-        key=f"voice_{current_chat}"
+    audio_bytes = audio_recorder(
+        text="🎤 Click to Record",
+        recording_color="#e74c3c",
+        neutral_color="#6aa36f",
+        icon_name="microphone",
+        icon_size="2x",
     )
+
+    if audio_bytes:
+        with open("voice.wav", "wb") as f:
+            f.write(audio_bytes)
+
+    """"        
 
     st.write("VOICE TEXT RAW:", voice_text)
 
@@ -724,8 +729,11 @@ with voice_container:
 
             if uploaded_file is not None:
                 st.write("FILE TYPE:", uploaded_file.type)
+    """            
 
 if uploaded_file is not None and chat_data["index"] is None:
+
+
 
     # ---------- ONLY PROCESS NEW PDF ----------
 
