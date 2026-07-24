@@ -710,26 +710,32 @@ with voice_container:
     )
 
     if audio_bytes:
+        st.success("Audio recorded successfully!")
+        st.write("Audio size:", len(audio_bytes), "bytes")
+
         with open("voice.wav", "wb") as f:
             f.write(audio_bytes)
 
-    """"        
+        st.success("voice.wav saved!")
+    else:
+        st.warning("No audio received.")
 
-    st.write("VOICE TEXT RAW:", voice_text)
+    
 
-    if voice_text:
+    #st.write("VOICE TEXT RAW:", voice_text)
 
-        if st.session_state.get("last_voice_text") != voice_text:
+    #if voice_text:
 
-            st.session_state.voice_question = voice_text
+       # if st.session_state.get("last_voice_text") != voice_text:
 
-            st.session_state.last_voice_text = voice_text
+        #    st.session_state.voice_question = voice_text
 
-            st.write("UPLOADED FILE:", uploaded_file)
+         #   st.session_state.last_voice_text = voice_text
 
-            if uploaded_file is not None:
-                st.write("FILE TYPE:", uploaded_file.type)
-    """            
+          #  st.write("UPLOADED FILE:", uploaded_file)
+
+           # if uploaded_file is not None:
+            #    st.write("FILE TYPE:", uploaded_file.type)          
 
 if uploaded_file is not None and chat_data["index"] is None:
 
