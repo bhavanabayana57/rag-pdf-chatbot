@@ -706,7 +706,7 @@ with voice_container:
 
     voice_text = speech_to_text(
         language="en",
-        just_once=False,
+        just_once=True,
         key=f"voice_{current_chat}"
     )
 
