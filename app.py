@@ -461,23 +461,34 @@ with st.sidebar:
 
     if st.button("Rename Chat"):
 
-        old_name = st.session_state.current_chat
+        if new_name.strip() == "":
+            st.warning("Enter a chat name")
 
-        old_path = os.path.join(CHAT_DIR, old_name)
+        elif new_name in st.session_state.chat_sessions:
+            st.warning("Chat name already exists")
 
-        new_path = os.path.join(CHAT_DIR, new_name)
+        else:
+            old_name = st.session_state.current_chat
 
-        os.rename(old_path, new_path)
+            old_path = os.path.join(CHAT_DIR, old_name)
+            new_path = os.path.join(CHAT_DIR, new_name)
 
-        st.session_state.chat_sessions[new_name] = (
-            st.session_state.chat_sessions.pop(old_name)
-        )
+            if os.path.exists(old_path):
+                os.rename(old_path, new_path)
 
-        st.session_state.current_chat = new_name
+            st.session_state.chat_sessions[new_name] = (
+                st.session_state.chat_sessions.pop(old_name)
+            )
 
-        st.rerun()
+            st.session_state.current_chat = new_name
+
+            st.rerun()
 
     # ---------- CHAT LIST ----------
+
+    existing_chats = sorted(
+        st.session_state.chat_sessions.keys()
+    )
 
     for chat_name in existing_chats:
 
@@ -490,13 +501,22 @@ with st.sidebar:
                 key=f"chat_{chat_name}",
                 use_container_width=True
             ):
-               st.session_state.pop("voice_question", None)
-               st.session_state.pop("pending_question", None)
-               st.session_state.pop("last_voice_text", None)
+                # Save current chat before switching
+                old_chat = st.session_state.current_chat
 
-               st.session_state.current_chat = chat_name
+                if old_chat in st.session_state.chat_sessions:
+                    save_current_chat(
+                        old_chat,
+                        st.session_state.chat_sessions[old_chat]
+                    )
 
-               st.rerun()
+                st.session_state.pop("voice_question", None)
+                st.session_state.pop("pending_question", None)
+                st.session_state.pop("last_voice_text", None)
+
+                st.session_state.current_chat = chat_name
+
+                st.rerun()
 
         with col2:
 
@@ -523,9 +543,15 @@ with st.sidebar:
 
 # ---------------- CURRENT CHAT ----------------
 
-current_chat = st.session_state.current_chat
+current_chat = st.session_state.get("current_chat")
 
-chat = st.session_state.chat_sessions[current_chat]
+if current_chat is None:
+    st.stop()
+
+chat = st.session_state.chat_sessions.get(current_chat)
+
+if chat is None:
+    st.stop()
 
 chat.setdefault("messages", [])
 chat.setdefault("pdf_name", "")
@@ -610,76 +636,6 @@ if (
     chat_data["index"] = faiss.read_index(
         chat_data["index_path"]
     )
-# -------------------- TITLE --------------------
-
-if not st.session_state.logged_in:
-
-    st.title("🔐 Login")
-
-    username = st.text_input("Username")
-
-    password = st.text_input(
-        "Password",
-        type="password"
-    )
-
-    col1, col2 = st.columns(2)
-
-    with col1:
-
-        if st.button("Login"):
-
-            with open(USERS_FILE, "r") as f:
-                users = json.load(f)
-
-            if (
-                username in users
-                and users[username]
-                == hash_password(password)
-            ):
-
-                st.session_state.logged_in = True
-
-                st.session_state.username = username
-
-                st.rerun()
-
-            else:
-
-                st.error("Invalid Username or Password")
-
-    with col2:
-
-        if st.button("Register"):
-
-            with open(USERS_FILE, "r") as f:
-                users = json.load(f)
-
-            if username in users:
-
-                st.error("User already exists")
-
-            else:
-
-                users[username] = hash_password(password)
-
-                with open(
-                    USERS_FILE,
-                    "w"
-                ) as f:
-
-                    json.dump(
-                        users,
-                        f,
-                        indent=4
-                    )
-
-                st.success(
-                    "Registration Successful"
-                )
-
-    if not st.session_state.logged_in:
-        st.stop()                
 
 colA, colB = st.columns([10,2])
 
@@ -922,29 +878,6 @@ if uploaded_file is not None and chat_data["index"] is None:
 
         index = faiss.IndexFlatL2(dimension)
 
-        chat_path = os.path.join(CHAT_DIR, current_chat)
-
-        os.makedirs(chat_path, exist_ok=True)
-
-        index_path = os.path.join(chat_path, "faiss.index")
-
-        faiss.write_index(index, index_path)
-
-        chat_data["index_path"] = index_path
-
-        save_data = chat_data.copy()
-
-        save_data["index"] = None
-
-        data_path = os.path.join(chat_path, "data.pkl")
-
-        with open(data_path, "wb") as f:
-            pickle.dump(save_data, f)
-
-        embeddings = np.array(embeddings).astype("float32")
-
-        chat_data["index"] = index
-
         index.add(embeddings)
 
         chat_path = os.path.join(CHAT_DIR, current_chat)
@@ -955,9 +888,9 @@ if uploaded_file is not None and chat_data["index"] is None:
 
         faiss.write_index(index, index_path)
 
-        chat_data["index_path"] = index_path
+        chat_data["index"] = index
 
-        
+        chat_data["index_path"] = index_path
 
         save_data = chat_data.copy()
 
@@ -967,7 +900,6 @@ if uploaded_file is not None and chat_data["index"] is None:
 
         with open(data_path, "wb") as f:
             pickle.dump(save_data, f)
-
         # ---------- STORE ----------
 
         chat_path = os.path.join(CHAT_DIR, current_chat)
