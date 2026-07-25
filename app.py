@@ -67,6 +67,17 @@ st.set_page_config(
     layout="wide"
 )
 
+# -------------------- VOICE SESSION --------------------
+
+if "voice_question" not in st.session_state:
+    st.session_state.voice_question = None
+
+if "last_voice_hash" not in st.session_state:
+    st.session_state.last_voice_hash = None
+
+if "voice_processing" not in st.session_state:
+    st.session_state.voice_processing = False
+
 if "logged_in" not in st.session_state:
     st.session_state.logged_in = False
 
@@ -693,16 +704,10 @@ else:
 
     # ================= VOICE CONTAINER =================
 
-voice_text = None
-
-voice_container = st.container()
-
-with voice_container:
-
     st.markdown("### 🎤 Voice Input")
 
     audio_bytes = audio_recorder(
-        text="🎤 Click to Record",
+        text="Click to Record",
         recording_color="#e74c3c",
         neutral_color="#6aa36f",
         icon_name="microphone",
@@ -710,32 +715,21 @@ with voice_container:
     )
 
     if audio_bytes:
-        st.success("Audio recorded successfully!")
-        st.write("Audio size:", len(audio_bytes), "bytes")
 
-        with open("voice.wav", "wb") as f:
-            f.write(audio_bytes)
+        import hashlib
 
-        st.success("voice.wav saved!")
-    else:
-        st.warning("No audio received.")
+        current_hash = hashlib.md5(audio_bytes).hexdigest()
 
-    
+        if current_hash != st.session_state.last_voice_hash:
 
-    #st.write("VOICE TEXT RAW:", voice_text)
+            st.session_state.last_voice_hash = current_hash
 
-    #if voice_text:
+            with open("voice.wav", "wb") as f:
+                f.write(audio_bytes)
 
-       # if st.session_state.get("last_voice_text") != voice_text:
+            st.success("Voice recorded successfully.")
 
-        #    st.session_state.voice_question = voice_text
-
-         #   st.session_state.last_voice_text = voice_text
-
-          #  st.write("UPLOADED FILE:", uploaded_file)
-
-           # if uploaded_file is not None:
-            #    st.write("FILE TYPE:", uploaded_file.type)          
+       
 
 if uploaded_file is not None and chat_data["index"] is None:
 
