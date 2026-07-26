@@ -741,10 +741,10 @@ if audio_bytes:
 
             except Exception as e:
                 st.exception(e)
-                
-        st.session_state.voice_question = transcript.strip()
 
-        st.success(f"🎤 {st.session_state.voice_question}")
+        st.session_state.voice_question = transcript.text.strip()
+
+        st.success(f"🎤 Recognized: {transcript.text}")
 
         st.rerun()
 
