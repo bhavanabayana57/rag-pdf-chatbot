@@ -727,7 +727,19 @@ if audio_bytes:
         with open("voice.wav", "wb") as f:
             f.write(audio_bytes)
 
-        st.success("Voice recorded successfully.")
+        with open("voice.wav", "rb") as audio_file:
+
+            transcript = client.audio.transcriptions.create(
+                file=audio_file,
+                model="whisper-large-v3-turbo",
+                response_format="text"
+            )
+
+        st.session_state.voice_question = transcript.strip()
+
+        st.success(f"🎤 {st.session_state.voice_question}")
+
+        st.rerun()
 
        
 
