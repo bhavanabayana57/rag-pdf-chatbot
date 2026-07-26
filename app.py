@@ -729,12 +729,19 @@ if audio_bytes:
 
         with open("voice.wav", "rb") as audio_file:
 
-            transcript = client.audio.transcriptions.create(
-                file=audio_file,
-                model="whisper-large-v3-turbo",
-                response_format="text"
-            )
+            try:
+                with open("voice.wav", "rb") as audio_file:
 
+                    transcript = client.audio.transcriptions.create(
+                        file=("voice.wav", audio_file),
+                        model="whisper-large-v3-turbo"
+                    )
+
+                st.write(transcript)
+
+            except Exception as e:
+                st.exception(e)
+                
         st.session_state.voice_question = transcript.strip()
 
         st.success(f"🎤 {st.session_state.voice_question}")
