@@ -704,6 +704,8 @@ else:
 
     # ================= VOICE CONTAINER =================
 
+# =================== VOICE INPUT ===================
+
 st.markdown("### 🎤 Voice Input")
 
 audio_bytes = audio_recorder(
@@ -717,37 +719,55 @@ audio_bytes = audio_recorder(
 if audio_bytes:
 
     import hashlib
+    import os
 
     current_hash = hashlib.md5(audio_bytes).hexdigest()
 
+    # Ignore duplicate recording
     if current_hash != st.session_state.last_voice_hash:
 
         st.session_state.last_voice_hash = current_hash
 
+        # Ignore empty recording
+        if len(audio_bytes) < 5000:
+            st.warning("Recording too short. Please speak for at least 1 second.")
+            st.stop()
+
+        # Save audio
         with open("voice.wav", "wb") as f:
             f.write(audio_bytes)
 
-        with open("voice.wav", "rb") as audio_file:
+        try:
 
-            try:
-                with open("voice.wav", "rb") as audio_file:
+            with open("voice.wav", "rb") as audio_file:
 
-                    transcript = client.audio.transcriptions.create(
-                        file=("voice.wav", audio_file),
-                        model="whisper-large-v3-turbo"
-                    )
+                transcript = client.audio.transcriptions.create(
+                    file=("voice.wav", audio_file),
+                    model="whisper-large-v3-turbo"
+                )
 
-                st.write(transcript)
+            voice_text = transcript.text.strip()
 
-            except Exception as e:
-                st.exception(e)
+            if voice_text == "":
+                st.warning("No speech detected.")
+                st.stop()
 
-        st.session_state.voice_question = transcript.text.strip()
+            st.session_state.voice_question = voice_text
 
-        st.success(f"🎤 Recognized: {transcript.text}")
+            st.success(f"🎤 Recognized: {voice_text}")
 
-        st.rerun()
+            st.rerun()
 
+        except Exception as e:
+
+            st.error("Voice transcription failed.")
+
+            st.exception(e)
+
+            if os.path.exists("voice.wav"):
+                os.remove("voice.wav")
+
+            st.stop()
        
 
 if uploaded_file is not None and chat_data["index"] is None:
@@ -1402,7 +1422,6 @@ if user_question:
         "page": source_pages
     })
 
-    st.session_state.pop("voice_question", None)
     st.session_state.pop("pending_question", None)
     st.session_state.pop("last_voice_text", None)
 
