@@ -704,30 +704,30 @@ else:
 
     # ================= VOICE CONTAINER =================
 
-    st.markdown("### 🎤 Voice Input")
+st.markdown("### 🎤 Voice Input")
 
-    audio_bytes = audio_recorder(
-        text="Click to Record",
-        recording_color="#e74c3c",
-        neutral_color="#6aa36f",
-        icon_name="microphone",
-        icon_size="2x",
-    )
+audio_bytes = audio_recorder(
+    text="Click to Record",
+    recording_color="#e74c3c",
+    neutral_color="#6aa36f",
+    icon_name="microphone",
+    icon_size="2x",
+)
 
-    if audio_bytes:
+if audio_bytes:
 
-        import hashlib
+    import hashlib
 
-        current_hash = hashlib.md5(audio_bytes).hexdigest()
+    current_hash = hashlib.md5(audio_bytes).hexdigest()
 
-        if current_hash != st.session_state.last_voice_hash:
+    if current_hash != st.session_state.last_voice_hash:
 
-            st.session_state.last_voice_hash = current_hash
+        st.session_state.last_voice_hash = current_hash
 
-            with open("voice.wav", "wb") as f:
-                f.write(audio_bytes)
+        with open("voice.wav", "wb") as f:
+            f.write(audio_bytes)
 
-            st.success("Voice recorded successfully.")
+        st.success("Voice recorded successfully.")
 
        
 
