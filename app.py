@@ -34,7 +34,7 @@ div[data-testid="stHorizontalBlock"] button{
 </style>
 """, unsafe_allow_html=True)
 
-from openai import OpenAI
+from groq import Groq
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from sentence_transformers import SentenceTransformer
 from sentence_transformers import CrossEncoder
@@ -149,9 +149,12 @@ groq_key = st.secrets.get(
     os.getenv("GROQ_API_KEY")
 )
 
-client = OpenAI(
-    api_key=groq_key,
-    base_url="https://api.groq.com/openai/v1"
+if not groq_key:
+    st.error("GROQ_API_KEY is missing.")
+    st.stop()
+
+client = Groq(
+    api_key=groq_key
 )
 
 # -------------------- LOAD MODEL --------------------
@@ -718,59 +721,59 @@ audio_bytes = audio_recorder(
 
 if audio_bytes:
 
-    import hashlib
-    import os
-
     current_hash = hashlib.md5(audio_bytes).hexdigest()
 
-    # Ignore duplicate recording
     if current_hash != st.session_state.last_voice_hash:
 
         st.session_state.last_voice_hash = current_hash
 
-        # Ignore empty recording
+        # Ignore very short recordings
         if len(audio_bytes) < 5000:
-            st.warning("Recording too short. Please speak for at least 1 second.")
-            st.stop()
+            st.warning(
+                "Recording is too short. Please speak for at least 1 second."
+            )
+        else:
 
-        # Save audio
-        with open("voice.wav", "wb") as f:
-            f.write(audio_bytes)
+            try:
 
-        try:
+                with open("voice.wav", "wb") as f:
+                    f.write(audio_bytes)
 
-            with open("voice.wav", "rb") as audio_file:
+                with open("voice.wav", "rb") as audio_file:
 
-                transcript = client.audio.transcriptions.create(
-                    file=("voice.wav", audio_file),
-                    model="whisper-large-v3-turbo"
-                )
+                    transcript = client.audio.transcriptions.create(
+                        file=("voice.wav", audio_file),
+                        model="whisper-large-v3-turbo",
+                        response_format="json"
+                    )
 
-            voice_text = transcript.text.strip()
+                voice_text = transcript.text.strip()
 
-            if voice_text == "":
-                st.warning("No speech detected.")
-                st.stop()
+                if not voice_text:
+                    st.warning("No speech detected.")
 
-            st.session_state.voice_question = voice_text
+                else:
+                    st.session_state.voice_question = voice_text
 
-            st.success(f"🎤 Recognized: {voice_text}")
+                    st.success(
+                        f"🎤 Recognized: {voice_text}"
+                    )
 
-            st.rerun()
+                    st.rerun()
 
-        except Exception as e:
+            except Exception as e:
 
-            st.error("Voice transcription failed.")
+                st.error("Voice transcription failed.")
 
-            st.exception(e)
+                st.code(str(e))
 
-            if os.path.exists("voice.wav"):
-                os.remove("voice.wav")
+            finally:
 
-            st.stop()
+                if os.path.exists("voice.wav"):
+                    os.remove("voice.wav")
        
 
-if uploaded_file is not None and chat_data["index"] is None:
+    if uploaded_file is not None and chat_data["index"] is None:
 
 
 
@@ -1383,12 +1386,12 @@ if user_question:
     })
 
     response = client.chat.completions.create(
-        model="llama-3.3-70b-versatile",
-        
-        messages=conversation_history,
-
-        stream=True
-    )
+    model="llama-3.3-70b-versatile",
+    messages=conversation_history,
+    temperature=0.7,
+    max_tokens=2048,
+    stream=True
+)
 
     full_response = ""
 

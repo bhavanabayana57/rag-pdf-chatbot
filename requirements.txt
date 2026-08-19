@@ -1,7 +1,6 @@
 streamlit
 faiss-cpu
 numpy
-openai
 langchain-text-splitters
 sentence-transformers
 torch
