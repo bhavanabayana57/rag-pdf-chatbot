@@ -131,7 +131,14 @@ def save_current_chat(current_chat, chat):
 
     save_data = chat.copy()
 
+    # FAISS object should NOT be pickled
     save_data["index"] = None
+
+    # Always store the FAISS file path
+    save_data["index_path"] = os.path.join(
+        chat_path,
+        "faiss.index"
+    )
 
     data_path = os.path.join(
         chat_path,
@@ -140,22 +147,6 @@ def save_current_chat(current_chat, chat):
 
     with open(data_path, "wb") as f:
         pickle.dump(save_data, f)
-# -------------------- LOAD ENV --------------------
-
-load_dotenv()
-
-groq_key = st.secrets.get(
-    "GROQ_API_KEY",
-    os.getenv("GROQ_API_KEY")
-)
-
-if not groq_key:
-    st.error("GROQ_API_KEY is missing.")
-    st.stop()
-
-client = Groq(
-    api_key=groq_key
-)
 
 # -------------------- LOAD MODEL --------------------
 
@@ -281,36 +272,60 @@ for chat_name in existing_chats:
     if os.path.exists(data_path):
 
         with open(data_path, "rb") as f:
+
             chat_data = pickle.load(f)
 
+        # ---------- BM25 ----------
 
-            if "chunks" in chat_data:
+        if "chunks" in chat_data:
 
-                tokenized_chunks = [
-                    chunk.split()
-                    for chunk in chat_data["chunks"]
-                ]
+            tokenized_chunks = [
+                chunk.split()
+                for chunk in chat_data["chunks"]
+            ]
 
             if len(tokenized_chunks) > 0:
-                chat_data["bm25"] = BM25Okapi(tokenized_chunks)
+
+                chat_data["bm25"] = BM25Okapi(
+                    tokenized_chunks
+                )
+
             else:
+
                 chat_data["bm25"] = None
 
-        st.session_state.chat_sessions[chat_name] = chat_data
+        else:
 
-    if chat_name not in st.session_state.chat_sessions:
+            chat_data["bm25"] = None
 
-        st.session_state.chat_sessions[chat_name] = {}
+        # ---------- LOAD FAISS ----------
 
-    chat_data = st.session_state.chat_sessions[chat_name]
+        chat_data["index"] = None
 
-    if "index_path" in chat_data:
+        index_path = chat_data.get(
+            "index_path",
+            ""
+        )
 
-            if os.path.exists(chat_data["index_path"]):
+        if not index_path:
 
-                chat_data["index"] = faiss.read_index(
-                    chat_data["index_path"]
-                )    
+            index_path = os.path.join(
+                CHAT_DIR,
+                chat_name,
+                "faiss.index"
+            )
+
+        if os.path.exists(index_path):
+
+            chat_data["index"] = faiss.read_index(
+                index_path
+            )
+
+            chat_data["index_path"] = index_path
+
+        st.session_state.chat_sessions[
+            chat_name
+        ] = chat_data
 
 # -------------------- FIRST CHAT --------------------
 
@@ -917,6 +932,96 @@ if audio_bytes:
 
         # ---------- FAISS ----------
 
+        dimension = embeddings.shape[1]
+
+        index = faiss.IndexFlatL2(dimension)
+
+        index.add(embeddings)
+
+        chat_path = os.path.join(
+            CHAT_DIR,
+            current_chat
+        )
+
+        os.makedirs(
+            chat_path,
+            exist_ok=True
+        )
+
+        index_path = os.path.join(
+            chat_path,
+            "faiss.index"
+        )
+
+        # SAVE FAISS INDEX
+        faiss.write_index(
+            index,
+            index_path
+        )
+
+        # STORE IN MEMORY
+        chat_data["index"] = index
+        chat_data["index_path"] = index_path
+
+        # STORE CHUNKS
+        chat_data["chunks"] = chunks
+        chat_data["chunk_pages"] = chunk_pages
+
+        # BM25
+        tokenized_chunks = [
+            chunk.split()
+            for chunk in chunks
+        ]
+
+        chat_data["bm25"] = BM25Okapi(
+            tokenized_chunks
+        )
+
+        # ---------- SAVE CHAT DATA ----------
+
+        save_data = chat_data.copy()
+
+        # Never pickle FAISS object
+        save_data["index"] = None
+
+        data_path = os.path.join(
+            chat_path,
+            "data.pkl"
+        )
+
+        with open(
+            data_path,
+            "wb"
+        ) as f:
+            pickle.dump(
+                save_data,
+                f
+            )
+
+        st.success("PDF uploaded successfully!")
+
+        st.rerun()
+
+        # ---------- LOAD FAISS INDEX ----------
+
+        if "index" not in chat_data:
+            chat_data["index"] = None
+
+        if "index_path" not in chat_data:
+            chat_data["index_path"] = ""
+
+
+
+            if os.path.exists(possible_path):
+
+                chat_data["index"] = faiss.read_index(
+                    possible_path
+                )
+
+                chat_data["index_path"] = possible_path
+
+                # ---------- FAISS ----------
+
         embeddings = np.array(embeddings).astype("float32")
 
         dimension = len(embeddings[0])
@@ -946,25 +1051,6 @@ if audio_bytes:
         with open(data_path, "wb") as f:
             pickle.dump(save_data, f)
 
-        # ---------- LOAD EXISTING FAISS INDEX ----------
-
-        if chat_data.get("index") is None:
-
-            index_path = chat_data.get("index_path")
-
-            if index_path and os.path.exists(index_path):
-
-                chat_data["index"] = faiss.read_index(index_path)
-
-            else:
-
-                chat_path = os.path.join(CHAT_DIR, current_chat)
-                index_path = os.path.join(chat_path, "faiss.index")
-
-                if os.path.exists(index_path):
-
-                    chat_data["index"] = faiss.read_index(index_path)
-                    chat_data["index_path"] = index_path    
         # ---------- STORE ----------
 
         chat_path = os.path.join(CHAT_DIR, current_chat)
@@ -1003,24 +1089,6 @@ if audio_bytes:
 
         st.rerun()
 
-        # ---------- SAVE CHAT ----------
-
-        save_data = {
-
-            "messages": chat_data["messages"],
-            "pdf_name": chat_data["pdf_name"],
-            "pdf_bytes": chat_data["pdf_bytes"],
-            "chunks": chat_data["chunks"],
-            "chunk_pages": chat_data["chunk_pages"]
-        }
-
-        with open(
-            os.path.join(CHAT_DIR, current_chat, "data.pkl"),
-            "wb"
-        ) as f:
-
-            pickle.dump(save_data, f)
-
     # -------- LOAD FAISS INDEX --------
 
 
@@ -1045,18 +1113,6 @@ st.write("MESSAGES LENGTH:", len(messages))
 chunks = chat_data["chunks"]
 
 chunk_pages = chat_data["chunk_pages"]
-
-index = None
-
-if chat_data["index"] is None:
-
-    if "index_path" in chat_data:
-
-        if os.path.exists(chat_data["index_path"]):
-
-            chat_data["index"] = faiss.read_index(
-                chat_data["index_path"]
-            )
 
 index = chat_data["index"]
 
@@ -1100,23 +1156,14 @@ elif "voice_question" in st.session_state:
     
 if user_question:
 
-    if chat_data["index"] is None:
-
-        if (
-            "index_path" in chat_data
-            and chat_data["index_path"] != ""
-            and os.path.exists(chat_data["index_path"])
-        ):
-
-            chat_data["index"] = faiss.read_index(
-                chat_data["index_path"]
-            )
-
-    index = chat_data["index"]
-
+    index = chat_data.get("index")
 
     if index is None:
-        st.error("FAISS index not loaded")
+
+        st.error(
+            "FAISS index not loaded. Please upload the PDF again."
+        )
+
         st.stop()
 
     chunks = chat_data["chunks"]
@@ -1208,8 +1255,6 @@ if user_question:
     question_embedding = model.encode([user_question])
 
     # FAISS SEARCH
-    if chat_data["index"] is None:
-        st.stop()
 
     D, I = index.search(question_embedding, k=5)
 
