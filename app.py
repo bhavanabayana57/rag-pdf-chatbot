@@ -773,13 +773,10 @@ if audio_bytes:
                     os.remove("voice.wav")
        
 
-    if uploaded_file is not None and chat_data["index"] is None:
-
+    if uploaded_file is not None and chat_data["index"] is None and isinstance(uploaded_file, str) is False:
 
 
     # ---------- ONLY PROCESS NEW PDF ----------
-
-    if isinstance(uploaded_file, str) is False:
 
         file_bytes = uploaded_file.read()
 
