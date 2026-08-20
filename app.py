@@ -811,8 +811,6 @@ if audio_bytes:
         chat_data["messages"] = []
         chat_data["chunks"] = []
         chat_data["chunk_pages"] = []
-        chat_data["index"] = None
-        chat_data["bm25"] = None
 
         if uploaded_file.type.startswith("image"):
 
@@ -947,6 +945,26 @@ if audio_bytes:
 
         with open(data_path, "wb") as f:
             pickle.dump(save_data, f)
+
+        # ---------- LOAD EXISTING FAISS INDEX ----------
+
+        if chat_data.get("index") is None:
+
+            index_path = chat_data.get("index_path")
+
+            if index_path and os.path.exists(index_path):
+
+                chat_data["index"] = faiss.read_index(index_path)
+
+            else:
+
+                chat_path = os.path.join(CHAT_DIR, current_chat)
+                index_path = os.path.join(chat_path, "faiss.index")
+
+                if os.path.exists(index_path):
+
+                    chat_data["index"] = faiss.read_index(index_path)
+                    chat_data["index_path"] = index_path    
         # ---------- STORE ----------
 
         chat_path = os.path.join(CHAT_DIR, current_chat)
