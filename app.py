@@ -825,9 +825,7 @@ else:
         key=current_chat
     )
 
-    # ================= VOICE CONTAINER =================
-
-# =================== VOICE INPUT ===================
+   # =================== VOICE INPUT ===================
 
 st.markdown("### 🎤 Voice Input")
 
@@ -847,11 +845,12 @@ if audio_bytes:
 
         st.session_state.last_voice_hash = current_hash
 
-        # Ignore very short recordings
         if len(audio_bytes) < 5000:
+
             st.warning(
                 "Recording is too short. Please speak for at least 1 second."
             )
+
         else:
 
             try:
@@ -869,29 +868,27 @@ if audio_bytes:
 
                 voice_text = transcript.text.strip()
 
-                if not voice_text:
-                    st.warning("No speech detected.")
+                if not voice_text or voice_text == ".":
+
+                    st.warning(
+                        "No clear speech detected. Please record again."
+                    )
 
                 else:
-                    st.session_state.voice_question = voice_text
 
-                    st.success(
-                        f"🎤 Recognized: {voice_text}"
-                    )
+                    st.session_state.voice_question = voice_text
 
                     st.rerun()
 
             except Exception as e:
 
                 st.error("Voice transcription failed.")
-
                 st.code(str(e))
 
             finally:
 
                 if os.path.exists("voice.wav"):
                     os.remove("voice.wav")
-
 
 # ---------- PDF PROCESSING ----------
 if uploaded_file is not None and chat_data["index"] is None and isinstance(uploaded_file, str) is False:
