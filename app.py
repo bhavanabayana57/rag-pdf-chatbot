@@ -1162,16 +1162,8 @@ user_question = None
 if question:
     user_question = question
 
-elif "voice_question" in st.session_state:
+elif st.session_state.get("voice_question"):
     user_question = st.session_state.voice_question
-
-    st.session_state.pop("voice_question", None)
-    st.session_state.pop("pending_question", None)
-    st.session_state.pop("last_voice_text", None)
-
-    st.write("VOICE:", st.session_state.get("voice_question"))
-    st.write("QUESTION:", question)
-    st.write("USER QUESTION:", user_question)
             
 if user_question:
 
