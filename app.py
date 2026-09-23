@@ -1152,9 +1152,6 @@ question = st.chat_input(
     "Ask a question from PDF"
 )
 
-st.write("VOICE:", st.session_state.get("voice_question"))
-st.write("QUESTION:", question)
-
 # ---------------- USER QUESTION ----------------
 
 user_question = None
@@ -1498,6 +1495,8 @@ if user_question:
         "content": full_response,
         "page": source_pages
     })
+
+    st.session_state.pop("voice_question", None)
 
     st.session_state.pop("pending_question", None)
     st.session_state.pop("last_voice_text", None)
