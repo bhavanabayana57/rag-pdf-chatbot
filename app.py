@@ -314,21 +314,36 @@ def process_pdf(file_bytes):
 
     for page_num, page in enumerate(pdf_document):
 
+        # Keep normal text extraction EXACTLY as it is
         text = page.get_text("text").strip()
 
-        # scanned pdf fallback OCR
+        # OCR ONLY for scanned pages
         if len(text) < 20:
 
-            pix = page.get_pixmap(dpi=300)
+            try:
 
-            img = Image.frombytes(
-                "RGB",
-                [pix.width, pix.height],
-                pix.samples
-            )
+                pix = page.get_pixmap(
+                    dpi=200,
+                    alpha=False
+                )
 
-            text = extract_text_from_image(img)
+                img = Image.frombytes(
+                    "RGB",
+                    [pix.width, pix.height],
+                    pix.samples
+                )
 
+                text = extract_text_from_image(img)
+
+                del img
+                del pix
+
+            except Exception as e:
+
+                text = ""
+                print(
+                    f"OCR failed on page {page_num + 1}: {e}"
+                )
 
         if text.strip():
 
@@ -337,6 +352,7 @@ def process_pdf(file_bytes):
                 "page": page_num + 1
             })
 
+    pdf_document.close()
 
     return documents
 
