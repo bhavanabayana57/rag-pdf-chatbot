@@ -1371,9 +1371,9 @@ if user_question:
 
     st.write("USER QUESTION:", user_question)
 
-    st.write("RETRIEVED CHUNKS:")
-    for chunk in retrieved_chunks[:3]:
-        st.write(chunk[:500])
+    # st.write("RETRIEVED CHUNKS:")
+    # for chunk in retrieved_chunks[:3]:
+        # st.write(chunk[:500])
 
     prompt = f"""
     You are an intelligent AI study assistant.
