@@ -43,6 +43,108 @@ from rank_bm25 import BM25Okapi
 from PIL import Image
 from pdf2image import convert_from_bytes
 from audio_recorder_streamlit import audio_recorder
+
+
+def ensure_faiss_index(chat_data, current_chat):
+
+    # Already loaded
+    if chat_data.get("index") is not None:
+        return chat_data["index"]
+
+    chat_path = os.path.join(
+        CHAT_DIR,
+        current_chat
+    )
+
+    os.makedirs(
+        chat_path,
+        exist_ok=True
+    )
+
+    # ---------- FIND FAISS FILE ----------
+
+    index_path = chat_data.get("index_path")
+
+    if not index_path:
+        index_path = os.path.join(
+            chat_path,
+            "faiss.index"
+        )
+
+    # ---------- LOAD EXISTING FAISS ----------
+
+    if os.path.exists(index_path):
+
+        try:
+
+            index = faiss.read_index(index_path)
+
+            chat_data["index"] = index
+            chat_data["index_path"] = index_path
+
+            return index
+
+        except Exception as e:
+
+            st.warning(
+                f"Could not load FAISS index: {e}"
+            )
+
+    # ---------- REBUILD FAISS FROM CHUNKS ----------
+
+    chunks = chat_data.get("chunks", [])
+
+    if chunks:
+
+        embeddings = model.encode(
+            chunks
+        )
+
+        embeddings = np.asarray(
+            embeddings,
+            dtype=np.float32
+        )
+
+        dimension = embeddings.shape[1]
+
+        index = faiss.IndexFlatL2(
+            dimension
+        )
+
+        index.add(
+            embeddings
+        )
+
+        faiss.write_index(
+            index,
+            index_path
+        )
+
+        chat_data["index"] = index
+        chat_data["index_path"] = index_path
+
+        # Save updated chat data
+        save_data = chat_data.copy()
+        save_data["index"] = None
+
+        data_path = os.path.join(
+            chat_path,
+            "data.pkl"
+        )
+
+        with open(
+            data_path,
+            "wb"
+        ) as f:
+
+            pickle.dump(
+                save_data,
+                f
+            )
+
+        return index
+
+    return None
 # -------------------- CONFIG --------------------
 
 BASE_CHAT_DIR = "chats"
@@ -786,716 +888,719 @@ if audio_bytes:
 
                 if os.path.exists("voice.wav"):
                     os.remove("voice.wav")
-       
 
-    if uploaded_file is not None and chat_data["index"] is None and isinstance(uploaded_file, str) is False:
 
+            # ---------- PDF PROCESSING ----------
+            if uploaded_file is not None and chat_data["index"] is None and isinstance(uploaded_file, str) is False:
 
     # ---------- ONLY PROCESS NEW PDF ----------
 
-        file_bytes = uploaded_file.read()
+                file_bytes = uploaded_file.read()
 
-        # ---------- SAVE PDF TO DISK ----------
+                # ---------- SAVE PDF TO DISK ----------
 
-        chat_path = os.path.join(CHAT_DIR, current_chat)
+                chat_path = os.path.join(CHAT_DIR, current_chat)
 
-        os.makedirs(chat_path, exist_ok=True)
+                os.makedirs(chat_path, exist_ok=True)
 
-        pdf_path = os.path.join(chat_path, uploaded_file.name)
+                pdf_path = os.path.join(chat_path, uploaded_file.name)
 
-        with open(pdf_path, "wb") as f:
-            f.write(file_bytes)
+                with open(pdf_path, "wb") as f:
+                    f.write(file_bytes)
 
-        chat_data["pdf_path"] = pdf_path
+                chat_data["pdf_path"] = pdf_path
 
-        # ---------- SAVE PDF ----------
+                # ---------- SAVE PDF ----------
 
-        chat_data["pdf_name"] = uploaded_file.name
+                chat_data["pdf_name"] = uploaded_file.name
 
-        chat_data["messages"] = []
-        messages = []
+                chat_data["messages"] = []
+                messages = []
 
-        st.session_state.pop("voice_question", None)
-        st.session_state.pop("pending_question", None)
-        st.session_state.pop("last_voice_text", None)
+                st.session_state.pop("voice_question", None)
+                st.session_state.pop("pending_question", None)
+                st.session_state.pop("last_voice_text", None)
 
-        chat_data["pdf_bytes"] = file_bytes
+                chat_data["pdf_bytes"] = file_bytes
 
         # ---------- PROCESS ----------
 
-        chat_data["messages"] = []
-        chat_data["chunks"] = []
-        chat_data["chunk_pages"] = []
+                chat_data["messages"] = []
+                chat_data["chunks"] = []
+                chat_data["chunk_pages"] = []
 
-        if uploaded_file.type.startswith("image"):
+                if uploaded_file.type.startswith("image"):
 
-            st.write("IMAGE DETECTED")
-            st.write("FILE NAME:", uploaded_file.name)
-            st.write("FILE TYPE:", uploaded_file.type)
+                    st.write("IMAGE DETECTED")
+                    st.write("FILE NAME:", uploaded_file.name)
+                    st.write("FILE TYPE:", uploaded_file.type)
 
-            image = Image.open(uploaded_file)
+                    image = Image.open(uploaded_file)
 
-            image = image.convert("L")      # grayscale
+                    image = image.convert("L")      # grayscale
 
-            image = image.resize(
-                (image.width * 3, image.height * 3)
-            )
+                    image = image.resize(
+                        (image.width * 3, image.height * 3)
+                    )
 
-            st.image(image, caption="Uploaded Image")
+                    st.image(image, caption="Uploaded Image")
 
-            ocr_text = extract_text_from_image(image)
+                    ocr_text = extract_text_from_image(image)
 
-            st.write("OCR TEXT DEBUG:", ocr_text)
+                    st.write("OCR TEXT DEBUG:", ocr_text)
 
-            if not ocr_text.strip():
-                st.error("No text extracted from image")
-                st.stop()
+                    if not ocr_text.strip():
+                        st.error("No text extracted from image")
+                        st.stop()
 
-            documents = [{
-                "text": ocr_text,
-                "page": 1
-            }]
-        else:
+                    documents = [{
+                        "text": ocr_text,
+                        "page": 1
+                    }]
+                else:
 
-            documents = process_pdf(file_bytes)
+                    documents = process_pdf(file_bytes)
 
-            st.write("DOCUMENTS COUNT:", len(documents))
+                    st.write("DOCUMENTS COUNT:", len(documents))
 
-            if len(documents) > 0:
-                st.write("FIRST DOCUMENT:")
-                st.write(documents[0])
+                    if len(documents) > 0:
+                        st.write("FIRST DOCUMENT:")
+                        st.write(documents[0])
 
-                st.write("FIRST DOCUMENT TEXT:")
-                st.write(documents[0]["text"][:2000])
+                        st.write("FIRST DOCUMENT TEXT:")
+                        st.write(documents[0]["text"][:2000])
 
-            st.write("DOCUMENTS COUNT:", len(documents))
+                    st.write("DOCUMENTS COUNT:", len(documents))
 
-            for i, doc in enumerate(documents[:5]):
-                st.write(f"DOC {i}")
-                st.write(doc)
+                    for i, doc in enumerate(documents[:5]):
+                        st.write(f"DOC {i}")
+                        st.write(doc)
 
-            st.write("DOCUMENTS COUNT:", len(documents))
+                    st.write("DOCUMENTS COUNT:", len(documents))
 
-            for doc in documents[:5]:
-                st.write(doc)
+                    for doc in documents[:5]:
+                        st.write(doc)
 
-            st.write("FIRST DOCUMENT TEXT:")
-            if len(documents) > 0:
-                st.write("FIRST DOCUMENT TEXT:")
-                st.write(documents[0]["text"][:1000])
-            else:
-                st.error("NO DOCUMENTS EXTRACTED")
+                    st.write("FIRST DOCUMENT TEXT:")
+                    if len(documents) > 0:
+                        st.write("FIRST DOCUMENT TEXT:")
+                        st.write(documents[0]["text"][:1000])
+                    else:
+                        st.error("NO DOCUMENTS EXTRACTED")
 
-            save_data = chat_data.copy()
+                    save_data = chat_data.copy()
 
-            with open(
-                os.path.join(CHAT_DIR, current_chat, "data.pkl"),
-                "wb"
-            ) as f:
-                pickle.dump(save_data, f)
-      
+                    with open(
+                        os.path.join(CHAT_DIR, current_chat, "data.pkl"),
+                        "wb"
+                    ) as f:
+                        pickle.dump(save_data, f)
+            
 
 
-        # ---------- CHUNKING ----------
+                # ---------- CHUNKING ----------
 
-        text_splitter = RecursiveCharacterTextSplitter(
-            chunk_size=1200,
-            chunk_overlap=200
-        )
+                text_splitter = RecursiveCharacterTextSplitter(
+                    chunk_size=1200,
+                    chunk_overlap=200
+                )
 
-        chunks = []
+                chunks = []
 
-        chunk_pages = []
+                chunk_pages = []
 
-        for doc in documents:
+                for doc in documents:
 
-            split_chunks = text_splitter.split_text(doc["text"])
+                    split_chunks = text_splitter.split_text(doc["text"])
 
-            for chunk in split_chunks:
+                    for chunk in split_chunks:
 
-                chunks.append(chunk)
+                        chunks.append(chunk)
 
-                chunk_pages.append(doc["page"])
+                        chunk_pages.append(doc["page"])
 
-        # ---------- EMBEDDINGS ----------
+                # ---------- EMBEDDINGS ----------
 
-        if len(chunks) == 0:
-            st.error("No text extracted from PDF")
-            st.stop()
+                if len(chunks) == 0:
+                    st.error("No text extracted from PDF")
+                    st.stop()
 
-        embeddings = model.encode(chunks)
+                embeddings = model.encode(chunks)
 
-        embeddings = np.array(
-            embeddings,
-            dtype=np.float32
-        )
+                embeddings = np.array(
+                    embeddings,
+                    dtype=np.float32
+                )
 
-        # ---------- FAISS ----------
+                # ---------- FAISS ----------
 
-        dimension = embeddings.shape[1]
+                dimension = embeddings.shape[1]
 
-        index = faiss.IndexFlatL2(dimension)
+                index = faiss.IndexFlatL2(dimension)
 
-        index.add(embeddings)
+                index.add(embeddings)
 
-        chat_path = os.path.join(
-            CHAT_DIR,
-            current_chat
-        )
+                chat_path = os.path.join(
+                    CHAT_DIR,
+                    current_chat
+                )
 
-        os.makedirs(
-            chat_path,
-            exist_ok=True
-        )
+                os.makedirs(
+                    chat_path,
+                    exist_ok=True
+                )
 
-        index_path = os.path.join(
-            chat_path,
-            "faiss.index"
-        )
+                index_path = os.path.join(
+                    chat_path,
+                    "faiss.index"
+                )
 
-        # SAVE FAISS INDEX
-        faiss.write_index(
-            index,
-            index_path
-        )
+                # SAVE FAISS INDEX
+                faiss.write_index(
+                    index,
+                    index_path
+                )
 
-        # STORE IN MEMORY
-        chat_data["index"] = index
-        chat_data["index_path"] = index_path
+                # STORE IN MEMORY
+                chat_data["index"] = index
+                chat_data["index_path"] = index_path
 
-        # STORE CHUNKS
-        chat_data["chunks"] = chunks
-        chat_data["chunk_pages"] = chunk_pages
+                # STORE CHUNKS
+                chat_data["chunks"] = chunks
+                chat_data["chunk_pages"] = chunk_pages
 
-        # BM25
-        tokenized_chunks = [
-            chunk.split()
-            for chunk in chunks
-        ]
+                # BM25
+                tokenized_chunks = [
+                    chunk.split()
+                    for chunk in chunks
+                ]
 
-        chat_data["bm25"] = BM25Okapi(
-            tokenized_chunks
-        )
+                chat_data["bm25"] = BM25Okapi(
+                    tokenized_chunks
+                )
 
-        # ---------- SAVE CHAT DATA ----------
+                # ---------- SAVE CHAT DATA ----------
 
-        save_data = chat_data.copy()
+                save_data = chat_data.copy()
 
-        # Never pickle FAISS object
-        save_data["index"] = None
+                # Never pickle FAISS object
+                save_data["index"] = None
 
-        data_path = os.path.join(
-            chat_path,
-            "data.pkl"
-        )
+                data_path = os.path.join(
+                    chat_path,
+                    "data.pkl"
+                )
 
-        with open(
-            data_path,
-            "wb"
-        ) as f:
-            pickle.dump(
-                save_data,
-                f
-            )
+                with open(
+                    data_path,
+                    "wb"
+                ) as f:
+                    pickle.dump(
+                        save_data,
+                        f
+                    )
 
-        st.success("PDF uploaded successfully!")
+                st.success("PDF uploaded successfully!")
 
-        st.rerun()
+                st.rerun()
 
-        # ---------- LOAD FAISS INDEX ----------
+                # ---------- LOAD FAISS INDEX ----------
 
-        if "index" not in chat_data:
-            chat_data["index"] = None
+                if "index" not in chat_data:
+                    chat_data["index"] = None
+
+                if "index_path" not in chat_data:
+                    chat_data["index_path"] = ""
+
+
+
+                    if os.path.exists(possible_path):
+
+                        chat_data["index"] = faiss.read_index(
+                            possible_path
+                        )
+
+                        chat_data["index_path"] = possible_path
+
+                        # ---------- FAISS ----------
+
+                embeddings = np.array(embeddings).astype("float32")
+
+                dimension = len(embeddings[0])
+
+                index = faiss.IndexFlatL2(dimension)
+
+                index.add(embeddings)
+
+                chat_path = os.path.join(CHAT_DIR, current_chat)
+
+                os.makedirs(chat_path, exist_ok=True)
+
+                index_path = os.path.join(chat_path, "faiss.index")
+
+                faiss.write_index(index, index_path)
+
+                chat_data["index"] = index
+
+                chat_data["index_path"] = index_path
+
+                save_data = chat_data.copy()
+
+                save_data["index"] = None
+
+                data_path = os.path.join(chat_path, "data.pkl")
+
+                with open(data_path, "wb") as f:
+                    pickle.dump(save_data, f)
+
+                # ---------- STORE ----------
+
+                chat_path = os.path.join(CHAT_DIR, current_chat)
+
+                chat_data["chunks"] = chunks
+
+                chat_data["chunk_pages"] = chunk_pages
+
+                tokenized_chunks = [chunk.split() for chunk in chunks]
+
+                bm25 = BM25Okapi(tokenized_chunks)
+
+                chat_data["bm25"] = bm25
+
+                chat_data["index"] = index
+
+                chat_path = os.path.join(CHAT_DIR, current_chat)
+
+                os.makedirs(chat_path, exist_ok=True)
+
+                index_path = os.path.join(chat_path, "faiss.index")
+
+                faiss.write_index(index, index_path)
+
+                chat_data["index_path"] = index_path
+
+                save_data = chat_data.copy()
+                save_data["index"] = None
+
+                data_path = os.path.join(chat_path, "data.pkl")
+
+                with open(data_path, "wb") as f:
+                    pickle.dump(save_data, f)
+
+                st.success("PDF uploaded successfully!")    
+
+                st.rerun()
+
+            # -------- LOAD FAISS INDEX --------
+
 
         if "index_path" not in chat_data:
             chat_data["index_path"] = ""
 
+        if (
+            chat_data["index"] is None
+            and chat_data["index_path"] != ""
+            and os.path.exists(chat_data["index_path"])
+        ):
 
+            chat_data["index"] = faiss.read_index(
+                chat_data["index_path"]
+            )
+        # ---------------- CHAT VARIABLES ----------------
 
-            if os.path.exists(possible_path):
+        messages = chat_data["messages"]
 
-                chat_data["index"] = faiss.read_index(
-                    possible_path
+        st.write("MESSAGES LENGTH:", len(messages))
+
+        chunks = chat_data["chunks"]
+
+        chunk_pages = chat_data["chunk_pages"]
+
+        index = chat_data["index"]
+
+        # -------------------- SHOW CHAT HISTORY --------------------
+
+        for message in messages:
+
+            with st.chat_message(message["role"]):
+
+                st.markdown(message["content"])
+
+                if "page" in message:
+
+                    st.caption(f"Source Pages: {message['page']}")
+        # ---------------- CHAT INPUT ----------------
+
+        question = st.chat_input(
+            "Ask a question from PDF"
+        )
+
+        st.write("VOICE:", st.session_state.get("voice_question"))
+        st.write("QUESTION:", question)
+
+        # ---------------- USER QUESTION ----------------
+
+        user_question = None
+
+        if question:
+            user_question = question
+
+        elif "voice_question" in st.session_state:
+            user_question = st.session_state.voice_question
+
+            st.session_state.pop("voice_question", None)
+            st.session_state.pop("pending_question", None)
+            st.session_state.pop("last_voice_text", None)
+
+            st.write("VOICE:", st.session_state.get("voice_question"))
+            st.write("QUESTION:", question)
+            st.write("USER QUESTION:", user_question)
+            
+        if user_question:
+
+            index = ensure_faiss_index(
+                chat_data,
+                current_chat
+            )
+
+            if index is None:
+
+                st.error(
+                    "FAISS index could not be loaded. Please upload the PDF again."
                 )
 
-                chat_data["index_path"] = possible_path
+                st.stop()
 
-                # ---------- FAISS ----------
+            chunks = chat_data["chunks"]
 
-        embeddings = np.array(embeddings).astype("float32")
+            chunk_pages = chat_data["chunk_pages"]
 
-        dimension = len(embeddings[0])
+            bm25 = chat_data["bm25"]
 
-        index = faiss.IndexFlatL2(dimension)
+            general_questions = [
+                "what this pdf",
+                "what is this pdf",
+                "what this document",
+                "summary",
+                "overview",
+                "briefly say"
+            ]
 
-        index.add(embeddings)
+            if any(q in user_question.lower() for q in general_questions):
 
-        chat_path = os.path.join(CHAT_DIR, current_chat)
+                retrieved_chunks = chunks[:20]
 
-        os.makedirs(chat_path, exist_ok=True)
+                retrieved_pages = chunk_pages[:20]
 
-        index_path = os.path.join(chat_path, "faiss.index")
+            # USER MESSAGE
 
-        faiss.write_index(index, index_path)
+            if user_question is None:
+                st.stop()
 
-        chat_data["index"] = index
+            messages.append({
+                "role": "user",
+                "content": user_question
+            })
 
-        chat_data["index_path"] = index_path
+            chat_data["messages"] = messages
 
-        save_data = chat_data.copy()
+            conversation_history = []
 
-        save_data["index"] = None
+            for msg in messages[-6:]:
 
-        data_path = os.path.join(chat_path, "data.pkl")
+                conversation_history.append({
+                    "role": msg["role"],
+                    "content": msg["content"]
+                })
 
-        with open(data_path, "wb") as f:
-            pickle.dump(save_data, f)
+                if len(messages) == 1:
+                    recent_context = ""
+                else:
+                    recent_context = " ".join(
+                        msg["content"]
+                        for msg in messages[:-1]
+                        if msg["role"] == "user"
+                    )[-500:]
 
-        # ---------- STORE ----------
+            context_question = f"""
+            Previous conversation:
+            {recent_context}
 
-        chat_path = os.path.join(CHAT_DIR, current_chat)
+            Current question:
+            {user_question}
 
-        chat_data["chunks"] = chunks
+            Rewrite the current question using the previous conversation.
 
-        chat_data["chunk_pages"] = chunk_pages
+            If the question contains pronouns such as:
+            - it
+            - its
+            - they
+            - them
+            - this
+            - that
 
-        tokenized_chunks = [chunk.split() for chunk in chunks]
+            replace them with the actual topic from the conversation.
 
-        bm25 = BM25Okapi(tokenized_chunks)
+            Only return the rewritten standalone question.
+            Do not explain anything.
+            """
 
-        chat_data["bm25"] = bm25
+            ##rewrite_response = client.chat.completions.create(
+            #  model="llama-3.1-8b-instant",
+            # messages=[
+                #    {
+                #       "role": "user",
+                #      "content": context_question
+                # }
+                #]
+            #)
 
-        chat_data["index"] = index
+            #user_question= rewrite_response.choices[0].message.content.strip()
 
-        chat_path = os.path.join(CHAT_DIR, current_chat)
+            question_embedding = model.encode([user_question])
 
-        os.makedirs(chat_path, exist_ok=True)
+            # FAISS SEARCH
 
-        index_path = os.path.join(chat_path, "faiss.index")
+            D, I = index.search(question_embedding, k=5)
 
-        faiss.write_index(index, index_path)
+            faiss_results = I[0]
 
-        chat_data["index_path"] = index_path
+            avg_distance = sum(D[0]) / len(D[0])
 
-        save_data = chat_data.copy()
-        save_data["index"] = None
+        # BM25 SEARCH
+            tokenized_query = user_question.split()
 
-        data_path = os.path.join(chat_path, "data.pkl")
+            bm25_scores = bm25.get_scores(tokenized_query)
 
-        with open(data_path, "wb") as f:
-            pickle.dump(save_data, f)
+            bm25_results = sorted(
+                range(len(bm25_scores)),
+                key=lambda i: bm25_scores[i],
+                reverse=True
+            )[:5]
 
-        st.success("PDF uploaded successfully!")    
+        # COMBINE RESULTS
+            combined_results = list(dict.fromkeys(
+                list(faiss_results) + bm25_results
+            ))
 
-        st.rerun()
+        # TOP RESULTS
+            top_results = combined_results[:5]
 
-    # -------- LOAD FAISS INDEX --------
+            retrieved_chunks = []
 
+            retrieved_pages = []
 
-if "index_path" not in chat_data:
-    chat_data["index_path"] = ""
+            for idx in top_results:
 
-if (
-    chat_data["index"] is None
-    and chat_data["index_path"] != ""
-    and os.path.exists(chat_data["index_path"])
-):
+                if idx < len(chunks):
 
-    chat_data["index"] = faiss.read_index(
-        chat_data["index_path"]
-    )
-# ---------------- CHAT VARIABLES ----------------
+                    retrieved_chunks.append(chunks[idx])
 
-messages = chat_data["messages"]
+                    retrieved_pages.append(chunk_pages[idx])  
+            
+            # -------- RERANKING --------
 
-st.write("MESSAGES LENGTH:", len(messages))
+            pairs = [
+                (user_question, chunk)
+                for chunk in retrieved_chunks
+            ]
 
-chunks = chat_data["chunks"]
+            # SUMMARY QUESTION CHECK
+            summary_questions = [
+                "what is this pdf about",
+                "what does this pdf define",
+                "what this pdf defines",
+                "what this pdf actually defines",
+                "briefly say about this",
+                "what is this document",
+                "summary",
+                "overview",
+                "explain this pdf",
+                "summarize this pdf"
+            ]
 
-chunk_pages = chat_data["chunk_pages"]
+            is_summary_question = any(
+                q in user_question.lower()
+                for q in summary_questions
+            )
 
-index = chat_data["index"]
+            if is_summary_question:
+                retrieved_chunks = chunks[:min(50, len(chunks))]
+                retrieved_pages = chunk_pages[:min(50, len(chunk_pages))]
 
-# -------------------- SHOW CHAT HISTORY --------------------
+            scores = reranker.predict(pairs)
 
-for message in messages:
+            best_score = max(scores)
 
-    with st.chat_message(message["role"]):
+            if best_score < -999 and not is_summary_question:
+                st.error(
+                    "This question does not appear to be related to the uploaded PDF."
+                )
+                st.stop()
 
-        st.markdown(message["content"])
+            ranked_chunks = sorted(
+                zip(scores, retrieved_chunks, retrieved_pages),
+                reverse=True
+            )
 
-        if "page" in message:
+            retrieved_chunks = [
+                chunk
+                for score, chunk, page in ranked_chunks[:10]
+            ]
 
-            st.caption(f"Source Pages: {message['page']}")
-# ---------------- CHAT INPUT ----------------
+            retrieved_pages = [
+                page
+                for score, chunk, page in ranked_chunks[:5]
+            ]
 
-question = st.chat_input(
-    "Ask a question from PDF"
-)
+            # CONTEXT
 
-st.write("VOICE:", st.session_state.get("voice_question"))
-st.write("QUESTION:", question)
+            if not retrieved_chunks:
+                retrieved_chunks = chunks[:5]
 
-# ---------------- USER QUESTION ----------------
+            context = "\n\n".join(retrieved_chunks[:8])
 
-user_question = None
+            source_pages = ", ".join(
+                [str(p) for p in retrieved_pages]
+            )
 
-if question:
-    user_question = question
+            # PROMPT
 
-elif "voice_question" in st.session_state:
-    user_question = st.session_state.voice_question
+            st.write("USER QUESTION:", user_question)
 
-    st.session_state.pop("voice_question", None)
-    st.session_state.pop("pending_question", None)
-    st.session_state.pop("last_voice_text", None)
+            st.write("RETRIEVED CHUNKS:")
+            for chunk in retrieved_chunks[:3]:
+                st.write(chunk[:500])
 
-    st.write("VOICE:", st.session_state.get("voice_question"))
-    st.write("QUESTION:", question)
-    st.write("USER QUESTION:", user_question)
-    
-if user_question:
+            prompt = f"""
+            You are an intelligent AI study assistant.
 
-    index = chat_data.get("index")
+            Use the uploaded PDF as your primary knowledge source, but explain concepts naturally in your own words.
 
-    if index is None:
+            Your job is to understand the user's intent and answer naturally like ChatGPT.
 
-        st.error(
-            "FAISS index not loaded. Please upload the PDF again."
+            You may:
+
+            - Explain concepts
+            - Summarize chapters
+            - Generate exam questions
+            - Create study plans
+            - Create topic-wise roadmaps
+            - Give revision notes
+            - Compare concepts
+            - Simplify difficult topics
+            - Answer follow-up questions
+            - Guide students
+
+            Rules:
+
+            1. Base answers mainly on the PDF content.
+            2. If the user asks for explanation, teach it clearly.
+            3. If the user asks for summary, summarize.
+            4. If the user asks for exam questions, generate them from PDF topics.
+            5. If the user asks for roadmap or study guidance, create it using PDF topics.
+            6. Maintain conversation context.
+            7. Use proper headings and bullet points.
+            8. Give professional and student-friendly answers.
+            9. Try to answer using the uploaded document or image content.
+            10. If the document content is unclear,
+            explain what information could be extracted
+            instead of saying the question is unrelated.
+
+            {context}
+
+            USER QUESTION:
+
+            {user_question}
+            """
+
+            # LLM RESPONSE
+
+            conversation_history = []
+
+            for msg in messages[-6:]:
+                conversation_history.append({
+                    "role": msg["role"],
+                    "content": msg["content"]
+                })
+
+            conversation_history.append({
+                "role": "system",
+                "content": """
+            You are a professional AI assistant.
+
+            Answer naturally like ChatGPT.
+
+            Do not simply copy chunks.
+
+            Understand the user's intent.
+
+            Summarize information intelligently.
+
+            Use complete sentences and proper explanations.
+
+            Avoid repetitive wording.
+
+            Give direct, professional, human-like answers.
+            """
+            })
+
+            conversation_history.append({
+                "role": "user",
+                "content": prompt
+            })
+
+            response = client.chat.completions.create(
+            model="llama-3.3-70b-versatile",
+            messages=conversation_history,
+            temperature=0.7,
+            max_tokens=2048,
+            stream=True
         )
 
-        st.stop()
+            full_response = ""
 
-    chunks = chat_data["chunks"]
+            with st.chat_message("assistant"):
 
-    chunk_pages = chat_data["chunk_pages"]
+                message_placeholder = st.empty()
 
-    bm25 = chat_data["bm25"]
+                for chunk in response:
 
-    general_questions = [
-        "what this pdf",
-        "what is this pdf",
-        "what this document",
-        "summary",
-        "overview",
-        "briefly say"
-    ]
+                    if chunk.choices[0].delta.content:
 
-    if any(q in user_question.lower() for q in general_questions):
+                        full_response += chunk.choices[0].delta.content
 
-        retrieved_chunks = chunks[:20]
+                        message_placeholder.markdown(full_response)
 
-        retrieved_pages = chunk_pages[:20]
+            # CREATE CHAT TEXT
+            chat_text = ""
 
-    # USER MESSAGE
+            for msg in chat_data["messages"]:
 
-    if user_question is None:
-        st.stop()
+                role = msg["role"].upper()
+                content = msg["content"]
 
-    messages.append({
-        "role": "user",
-        "content": user_question
-    })
+                chat_text += f"{role}: {content}\n\n"
 
-    chat_data["messages"] = messages
+            # SAVE ASSISTANT MESSAGE
 
-    conversation_history = []
+            messages.append({
+                "role": "assistant",
+                "content": full_response,
+                "page": source_pages
+            })
 
-    for msg in messages[-6:]:
+            st.session_state.pop("pending_question", None)
+            st.session_state.pop("last_voice_text", None)
 
-        conversation_history.append({
-            "role": msg["role"],
-            "content": msg["content"]
-        })
+            chat_data["messages"] = messages
 
-        if len(messages) == 1:
-            recent_context = ""
-        else:
-            recent_context = " ".join(
-                msg["content"]
-                for msg in messages[:-1]
-                if msg["role"] == "user"
-            )[-500:]
+        try:
+            save_current_chat(
+                current_chat,
+                chat_data
+            )
 
-    context_question = f"""
-    Previous conversation:
-    {recent_context}
-
-    Current question:
-    {user_question}
-
-    Rewrite the current question using the previous conversation.
-
-    If the question contains pronouns such as:
-    - it
-    - its
-    - they
-    - them
-    - this
-    - that
-
-    replace them with the actual topic from the conversation.
-
-    Only return the rewritten standalone question.
-    Do not explain anything.
-    """
-
-    ##rewrite_response = client.chat.completions.create(
-      #  model="llama-3.1-8b-instant",
-       # messages=[
-        #    {
-         #       "role": "user",
-          #      "content": context_question
-           # }
-        #]
-    #)
-
-    #user_question= rewrite_response.choices[0].message.content.strip()
-
-    question_embedding = model.encode([user_question])
-
-    # FAISS SEARCH
-
-    D, I = index.search(question_embedding, k=5)
-
-    faiss_results = I[0]
-
-    avg_distance = sum(D[0]) / len(D[0])
-
-# BM25 SEARCH
-    tokenized_query = user_question.split()
-
-    bm25_scores = bm25.get_scores(tokenized_query)
-
-    bm25_results = sorted(
-        range(len(bm25_scores)),
-        key=lambda i: bm25_scores[i],
-        reverse=True
-    )[:5]
-
-# COMBINE RESULTS
-    combined_results = list(dict.fromkeys(
-        list(faiss_results) + bm25_results
-    ))
-
-# TOP RESULTS
-    top_results = combined_results[:5]
-
-    retrieved_chunks = []
-
-    retrieved_pages = []
-
-    for idx in top_results:
-
-        if idx < len(chunks):
-
-            retrieved_chunks.append(chunks[idx])
-
-            retrieved_pages.append(chunk_pages[idx])  
-    
-    # -------- RERANKING --------
-
-    pairs = [
-        (user_question, chunk)
-        for chunk in retrieved_chunks
-    ]
-
-    # SUMMARY QUESTION CHECK
-    summary_questions = [
-        "what is this pdf about",
-        "what does this pdf define",
-        "what this pdf defines",
-        "what this pdf actually defines",
-        "briefly say about this",
-        "what is this document",
-        "summary",
-        "overview",
-        "explain this pdf",
-        "summarize this pdf"
-    ]
-
-    is_summary_question = any(
-        q in user_question.lower()
-        for q in summary_questions
-    )
-
-    if is_summary_question:
-        retrieved_chunks = chunks[:min(50, len(chunks))]
-        retrieved_pages = chunk_pages[:min(50, len(chunk_pages))]
-
-    scores = reranker.predict(pairs)
-
-    best_score = max(scores)
-
-    if best_score < -999 and not is_summary_question:
-        st.error(
-            "This question does not appear to be related to the uploaded PDF."
-        )
-        st.stop()
-
-    ranked_chunks = sorted(
-        zip(scores, retrieved_chunks, retrieved_pages),
-        reverse=True
-    )
-
-    retrieved_chunks = [
-        chunk
-        for score, chunk, page in ranked_chunks[:10]
-    ]
-
-    retrieved_pages = [
-        page
-        for score, chunk, page in ranked_chunks[:5]
-    ]
-
-    # CONTEXT
-
-    if not retrieved_chunks:
-        retrieved_chunks = chunks[:5]
-
-    context = "\n\n".join(retrieved_chunks[:8])
-
-    source_pages = ", ".join(
-        [str(p) for p in retrieved_pages]
-    )
-
-    # PROMPT
-
-    st.write("USER QUESTION:", user_question)
-
-    st.write("RETRIEVED CHUNKS:")
-    for chunk in retrieved_chunks[:3]:
-        st.write(chunk[:500])
-
-    prompt = f"""
-    You are an intelligent AI study assistant.
-
-    Use the uploaded PDF as your primary knowledge source, but explain concepts naturally in your own words.
-
-    Your job is to understand the user's intent and answer naturally like ChatGPT.
-
-    You may:
-
-    - Explain concepts
-    - Summarize chapters
-    - Generate exam questions
-    - Create study plans
-    - Create topic-wise roadmaps
-    - Give revision notes
-    - Compare concepts
-    - Simplify difficult topics
-    - Answer follow-up questions
-    - Guide students
-
-    Rules:
-
-    1. Base answers mainly on the PDF content.
-    2. If the user asks for explanation, teach it clearly.
-    3. If the user asks for summary, summarize.
-    4. If the user asks for exam questions, generate them from PDF topics.
-    5. If the user asks for roadmap or study guidance, create it using PDF topics.
-    6. Maintain conversation context.
-    7. Use proper headings and bullet points.
-    8. Give professional and student-friendly answers.
-    9. Try to answer using the uploaded document or image content.
-    10. If the document content is unclear,
-    explain what information could be extracted
-    instead of saying the question is unrelated.
-
-    {context}
-
-    USER QUESTION:
-
-    {user_question}
-    """
-
-    # LLM RESPONSE
-
-    conversation_history = []
-
-    for msg in messages[-6:]:
-        conversation_history.append({
-            "role": msg["role"],
-            "content": msg["content"]
-        })
-
-    conversation_history.append({
-        "role": "system",
-        "content": """
-    You are a professional AI assistant.
-
-    Answer naturally like ChatGPT.
-
-    Do not simply copy chunks.
-
-    Understand the user's intent.
-
-    Summarize information intelligently.
-
-    Use complete sentences and proper explanations.
-
-    Avoid repetitive wording.
-
-    Give direct, professional, human-like answers.
-    """
-    })
-
-    conversation_history.append({
-        "role": "user",
-        "content": prompt
-    })
-
-    response = client.chat.completions.create(
-    model="llama-3.3-70b-versatile",
-    messages=conversation_history,
-    temperature=0.7,
-    max_tokens=2048,
-    stream=True
-)
-
-    full_response = ""
-
-    with st.chat_message("assistant"):
-
-        message_placeholder = st.empty()
-
-        for chunk in response:
-
-            if chunk.choices[0].delta.content:
-
-                full_response += chunk.choices[0].delta.content
-
-                message_placeholder.markdown(full_response)
-
-    # CREATE CHAT TEXT
-    chat_text = ""
-
-    for msg in chat_data["messages"]:
-
-        role = msg["role"].upper()
-        content = msg["content"]
-
-        chat_text += f"{role}: {content}\n\n"
-
-    # SAVE ASSISTANT MESSAGE
-
-    messages.append({
-        "role": "assistant",
-        "content": full_response,
-        "page": source_pages
-    })
-
-    st.session_state.pop("pending_question", None)
-    st.session_state.pop("last_voice_text", None)
-
-    chat_data["messages"] = messages
-
-try:
-    save_current_chat(
-        current_chat,
-        chat_data
-    )
-
-except Exception:
-    st.error("REAL ERROR")
-    st.code(traceback.format_exc())
+        except Exception:
+            st.error("REAL ERROR")
+            st.code(traceback.format_exc())
