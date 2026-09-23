@@ -267,18 +267,17 @@ st.write("OCR Loaded")
 
 def extract_text_from_image(img):
 
-    st.write("INSIDE OCR FUNCTION")
-
     img_np = np.array(img)
 
     result = reader.readtext(
         img_np,
-        paragraph=True
+        paragraph=True,
+        detail=1
     )
 
-    st.write("OCR RESULT:", result)
-
-    text = " ".join([item[1] for item in result])
+    text = " ".join(
+        [item[1] for item in result]
+    )
 
     return text
 
@@ -314,16 +313,16 @@ def process_pdf(file_bytes):
 
     for page_num, page in enumerate(pdf_document):
 
-        # Keep normal text extraction EXACTLY as it is
+        # NORMAL TEXT PDF EXTRACTION - DO NOT CHANGE
         text = page.get_text("text").strip()
 
-        # OCR ONLY for scanned pages
+        # OCR ONLY WHEN PDF PAGE HAS NO TEXT
         if len(text) < 20:
 
             try:
 
                 pix = page.get_pixmap(
-                    dpi=200,
+                    dpi=150,
                     alpha=False
                 )
 
@@ -333,17 +332,34 @@ def process_pdf(file_bytes):
                     pix.samples
                 )
 
+                # Reduce image size before OCR
+                max_size = 1600
+
+                if max(img.size) > max_size:
+
+                    ratio = max_size / max(img.size)
+
+                    new_size = (
+                        int(img.width * ratio),
+                        int(img.height * ratio)
+                    )
+
+                    img = img.resize(new_size)
+
                 text = extract_text_from_image(img)
 
+                # Free memory
+                img.close()
                 del img
                 del pix
 
             except Exception as e:
 
-                text = ""
                 print(
                     f"OCR failed on page {page_num + 1}: {e}"
                 )
+
+                text = ""
 
         if text.strip():
 
@@ -355,7 +371,6 @@ def process_pdf(file_bytes):
     pdf_document.close()
 
     return documents
-
 # -------------------- SESSION STATE --------------------
 
 if "current_chat" not in st.session_state:
@@ -978,32 +993,9 @@ if uploaded_file is not None and chat_data["index"] is None and isinstance(uploa
 
         documents = process_pdf(file_bytes)
 
-        st.write("DOCUMENTS COUNT:", len(documents))
-
-        if len(documents) > 0:
-            st.write("FIRST DOCUMENT:")
-            st.write(documents[0])
-
-            st.write("FIRST DOCUMENT TEXT:")
-            st.write(documents[0]["text"][:2000])
-
-        st.write("DOCUMENTS COUNT:", len(documents))
-
-        for i, doc in enumerate(documents[:5]):
-            st.write(f"DOC {i}")
-            st.write(doc)
-
-        st.write("DOCUMENTS COUNT:", len(documents))
-
-        for doc in documents[:5]:
-            st.write(doc)
-
-        st.write("FIRST DOCUMENT TEXT:")
-        if len(documents) > 0:
-            st.write("FIRST DOCUMENT TEXT:")
-            st.write(documents[0]["text"][:1000])
-        else:
-            st.error("NO DOCUMENTS EXTRACTED")
+        if not documents:
+            st.error("No text could be extracted from this document.")
+            st.stop()
 
         save_data = chat_data.copy()
 
@@ -1012,8 +1004,6 @@ if uploaded_file is not None and chat_data["index"] is None and isinstance(uploa
             "wb"
         ) as f:
             pickle.dump(save_data, f)
-            
-
 
     # ---------- CHUNKING ----------
 
