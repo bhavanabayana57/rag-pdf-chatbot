@@ -53,7 +53,7 @@ from audio_recorder_streamlit import audio_recorder
 load_dotenv()
 client = Groq(api_key=os.getenv("GROQ_API_KEY"))
 
-model = SentenceTransformer("all-MiniLM-L6-v2")
+embedding_model = SentenceTransformer("all-MiniLM-L6-v2")
 
 
 def ensure_faiss_index(chat_data, current_chat):
@@ -107,7 +107,7 @@ def ensure_faiss_index(chat_data, current_chat):
 
     if chunks:
 
-        embeddings = model.encode(
+        embeddings =  embedding_model.encode(
             chunks
         )
 
@@ -1011,7 +1011,7 @@ if uploaded_file is not None and chat_data["index"] is None and isinstance(uploa
         st.error("No text extracted from PDF")
         st.stop()
 
-    embeddings = model.encode(chunks)
+    embeddings = embedding_model.encode(chunks)
 
     embeddings = np.array(
         embeddings,
