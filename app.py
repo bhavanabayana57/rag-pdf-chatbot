@@ -57,6 +57,8 @@ embedding_model = SentenceTransformer("all-MiniLM-L6-v2")
 
 model = embedding_model
 
+reranker = CrossEncoder("cross-encoder/ms-marco-MiniLM-L-6-v2")
+
 def ensure_faiss_index(chat_data, current_chat):
 
     # Already loaded
