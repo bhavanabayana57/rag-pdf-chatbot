@@ -53,6 +53,8 @@ from audio_recorder_streamlit import audio_recorder
 load_dotenv()
 client = Groq(api_key=os.getenv("GROQ_API_KEY"))
 
+model = SentenceTransformer("all-MiniLM-L6-v2")
+
 
 def ensure_faiss_index(chat_data, current_chat):
 
