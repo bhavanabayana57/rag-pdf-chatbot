@@ -55,6 +55,7 @@ client = Groq(api_key=os.getenv("GROQ_API_KEY"))
 
 embedding_model = SentenceTransformer("all-MiniLM-L6-v2")
 
+model = embedding_model
 
 def ensure_faiss_index(chat_data, current_chat):
 
