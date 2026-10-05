@@ -13,6 +13,7 @@ import json
 import hashlib
 import easyocr
 import traceback
+import io
 
 st.set_page_config(
     page_title="RAG PDF Chatbot",
@@ -45,7 +46,7 @@ from sentence_transformers import SentenceTransformer
 from sentence_transformers import CrossEncoder
 from dotenv import load_dotenv
 from rank_bm25 import BM25Okapi
-from PIL import Image
+from PIL import Image, ImageOps
 from pdf2image import convert_from_bytes
 from audio_recorder_streamlit import audio_recorder
 
@@ -259,108 +260,82 @@ def save_current_chat(current_chat, chat):
 def get_ocr_reader():
     return easyocr.Reader(['en'], gpu=False)
 
-st.write("OCR Loading...")
-
 reader = get_ocr_reader()
 
-st.write("OCR Loaded")
-
 def extract_text_from_image(img):
+
+    img = ImageOps.exif_transpose(img)
+
+    img = img.convert("L")
+
+    img = ImageOps.autocontrast(img)
+
+    max_size = 1600
+
+    if max(img.size) > max_size:
+
+        ratio = max_size / max(img.size)
+
+        img = img.resize(
+            (
+                int(img.width * ratio),
+                int(img.height * ratio)
+            )
+        )
 
     img_np = np.array(img)
 
     result = reader.readtext(
         img_np,
         paragraph=True,
-        detail=1
+        detail=0
     )
 
-    text = " ".join(
-        [item[1] for item in result]
-    )
+    text = " ".join(result)
 
-    return text
-
-@st.cache_resource
-def load_embedding_model():
-
-    return SentenceTransformer(
-        "all-mpnet-base-v2"
-    )
-
-model = load_embedding_model()
-
-@st.cache_resource
-def load_reranker():
-
-    return CrossEncoder(
-        "cross-encoder/ms-marco-MiniLM-L-6-v2"
-    )
-
-
-reranker = load_reranker()
-# -------------------- PDF PROCESSING --------------------
+    return text.strip()
 
 @st.cache_data
 def process_pdf(file_bytes):
 
-    pdf_document = fitz.open(
-        stream=file_bytes,
-        filetype="pdf"
-    )
+    pdf_document = fitz.open(stream=file_bytes, filetype="pdf")
 
     documents = []
 
     for page_num, page in enumerate(pdf_document):
 
-        # NORMAL TEXT PDF EXTRACTION - DO NOT CHANGE
+        # -------- NORMAL TEXT PDF EXTRACTION --------
         text = page.get_text("text").strip()
 
-        # OCR ONLY WHEN PDF PAGE HAS NO TEXT
+        # -------- OCR FOR SCANNED / IMAGE PDF --------
         if len(text) < 20:
 
             try:
-
                 pix = page.get_pixmap(
-                    dpi=150,
+                    dpi=100,
                     alpha=False
                 )
 
-                img = Image.frombytes(
+                image = Image.frombytes(
                     "RGB",
                     [pix.width, pix.height],
                     pix.samples
                 )
 
-                # Reduce image size before OCR
-                max_size = 1600
+                text = extract_text_from_image(image)
 
-                if max(img.size) > max_size:
+                st.image(image, caption=f"Scanned Page {page_num + 1}")
 
-                    ratio = max_size / max(img.size)
-
-                    new_size = (
-                        int(img.width * ratio),
-                        int(img.height * ratio)
-                    )
-
-                    img = img.resize(new_size)
-
-                text = extract_text_from_image(img)
-
-                # Free memory
-                img.close()
-                del img
                 del pix
 
             except Exception as e:
-
                 print(
                     f"OCR failed on page {page_num + 1}: {e}"
                 )
 
                 text = ""
 
+        # -------- SAVE EXTRACTED TEXT --------
         if text.strip():
 
             documents.append({
@@ -962,18 +937,20 @@ if uploaded_file is not None and chat_data["index"] is None and isinstance(uploa
 
     if uploaded_file.type.startswith("image"):
 
-        st.write("IMAGE DETECTED")
-        st.write("FILE NAME:", uploaded_file.name)
-        st.write("FILE TYPE:", uploaded_file.type)
-
-        uploaded_file.seek(0)
-        image = Image.open(uploaded_file)
-
-        image = image.convert("L")      # grayscale
-
-        image = image.resize(
-            (image.width * 3, image.height * 3)
+        image = Image.open(
+            io.BytesIO(file_bytes)
         )
+
+        image = ImageOps.exif_transpose(image)
+
+        text = extract_text_from_image(image)
+
+        documents = [
+            {
+                "text": text,
+                "page": 1
+            }
+        ]
 
         st.image(image, caption="Uploaded Image")
 
